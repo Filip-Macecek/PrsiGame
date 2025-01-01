@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame", "PrsiGame\PrsiGame.csproj", "{E10184D5-77C6-42EF-B159-799254B0B89C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame.UnitTests", "PrsiGame.UnitTests\PrsiGame.UnitTests.csproj", "{26523956-04DB-47D9-A9F9-19D4D54ACDEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{E10184D5-77C6-42EF-B159-799254B0B89C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E10184D5-77C6-42EF-B159-799254B0B89C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E10184D5-77C6-42EF-B159-799254B0B89C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
