@@ -61,4 +61,18 @@ public static class TypeExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
+
+    public static TurnType ToTurnType(this Turn turn)
+    {
+        return turn switch
+        {
+            AceTurn aceTurn => TurnType.AceTurn,
+            QueenTurn queenTurn => TurnType.QueenTurn,
+            RegularTurn regularTurn => TurnType.RegularTurn,
+            SevenTurn sevenTurn => TurnType.SevenTurn,
+            LickTurn lickTurn => TurnType.LickTurn,
+            SkipTurn skipTurn => TurnType.SkipTurn,
+            _ => throw new ArgumentOutOfRangeException(nameof(turn))
+        };
+    }
 }

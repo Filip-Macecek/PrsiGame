@@ -30,7 +30,7 @@ public record Game
 
     public Stack<Turn> Turns { get; }
 
-    public Stack<CardId> LickPile { get; }
+    public Stack<CardId> LickPile { get; set; }
 
     public Stack<CardId> DiscardPile { get; }
 
@@ -56,6 +56,8 @@ public record Game
         var validationResult = turn switch
         {
             CardTurn cardTurn => cardTurn.Validate(DiscardPile.Peek().ToCardObject(), GetCurrentColor(), TopCardAppliesToCurrentTurn()),
+            SkipTurn skipTurn => skipTurn.Validate(Turns.Peek()),
+            LickTurn lickTurn => lickTurn.Validate(Turns.Peek().ToTurnType(), GetRequiredLicks()),
             _ => throw new ArgumentOutOfRangeException(nameof(turn))
         };
 
@@ -143,12 +145,49 @@ public record Game
         return pickedColor ?? DiscardPile.Peek().ToColor();
     }
 
+    public int? GetRequiredLicks()
+    {
+        var turnsCopy = Turns.MakeCopy();
+        var requiredLicks = (int?) null;
+
+        while (requiredLicks == null && turnsCopy.Count > 0)
+        {
+            var turn = turnsCopy.Pop();
+            if (turn is SevenTurn sevenTurn)
+            {
+                requiredLicks = requiredLicks.HasValue ? requiredLicks + 2 : 2;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return requiredLicks;
+    }
+
     private void ApplyTurn(Turn turn)
     {
-        if (turn is CardTurn cardTurn)
+        switch (turn)
         {
-            DiscardPile.Push(cardTurn.Card.Id);
-            turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
+            case CardTurn cardTurn:
+                DiscardPile.Push(cardTurn.Card.Id);
+                turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
+                break;
+            case SkipTurn:
+                break;
+            case LickTurn lickTurn:
+                for (var i = 0; i < lickTurn.LickCount; i++)
+                {
+                    if (!LickPile.TryPop(out var lickedCard))
+                    {
+                        LickPile = new Stack<CardId>(DiscardPile.ToList());
+                        DiscardPile.Clear();
+                    }
+                    turn.Player.CardsOnHand.Add(lickedCard);
+                }
+
+                break;
         }
     }
 }

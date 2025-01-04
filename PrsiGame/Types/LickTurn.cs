@@ -17,28 +17,18 @@ public sealed record LickTurn : Turn
         return new LickTurn(player, lickCount);
     }
 
-    public Result Validate(Turn turn, int? requiredLickCount)
+    public Result Validate(TurnType lastTurn, int? requiredLickCount)
     {
-        return turn switch
+        return lastTurn switch
         {
-            AceTurn aceTurn => new InvalidTurnError("The player is currently stunned."),
-            LickTurn lickTurn => ValidateSingleCardLick(),
-            QueenTurn queenTurn => new InvalidTurnError("Cannot lick when stunned."),
-            RegularTurn regularTurn => ValidateSingleCardLick(),
-            SevenTurn sevenTurn => Validate(sevenTurn, requiredLickCount ?? int.MaxValue),
-            SkipTurn skipTurn => ValidateSingleCardLick(),
-            _ => throw new ArgumentOutOfRangeException(nameof(turn))
+            TurnType.AceTurn => new InvalidTurnError("The player is currently stunned."),
+            TurnType.LickTurn => ValidateSingleCardLick(),
+            TurnType.QueenTurn => ValidateSingleCardLick(),
+            TurnType.RegularTurn => ValidateSingleCardLick(),
+            TurnType.SevenTurn => Result.FailIf(requiredLickCount!.Value != LickCount, () => new InvalidTurnError($"Player must lick {requiredLickCount.Value} cards.")),
+            TurnType.SkipTurn => ValidateSingleCardLick(),
+            _ => throw new ArgumentOutOfRangeException(nameof(lastTurn), lastTurn, null)
         };
-    }
-
-    private Result Validate(SevenTurn turn, int requiredCountLick)
-    {
-        if (requiredCountLick != LickCount)
-        {
-            return new InvalidTurnError($"Player must lick {requiredCountLick} cards.");
-        }
-
-        return Result.Ok();
     }
 
     private Result ValidateSingleCardLick()

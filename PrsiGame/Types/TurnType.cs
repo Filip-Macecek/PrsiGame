@@ -2,7 +2,10 @@
 
 public enum TurnType
 {
-    LickPile = 1,
-    PlayCard = 2,
-    Skip = 3
+    AceTurn = 1,
+    LickTurn = 2,
+    QueenTurn = 3,
+    RegularTurn = 4,
+    SevenTurn = 5,
+    SkipTurn = 6
 }

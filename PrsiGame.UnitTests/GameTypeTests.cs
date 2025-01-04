@@ -198,4 +198,21 @@ public class GameTypeTests
         result.IsSuccess.Should().BeFalse();
         result.Errors.First().Should().BeOfType(typeof(InvalidGameStateError));
     }
+
+    [Fact]
+    public void AddTurn_LickPileIsEmpty_PutsDiscardPileAsLickPile()
+    {
+        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
+
+        game.DiscardPile.Clear();
+        game.DiscardPile.Push(CardId.QueenOfClubs);
+        game.DiscardPile.Push(CardId.QueenOfHearts);
+        game.DiscardPile.Push(CardId.QueenOfDiamonds);
+
+        game.LickPile.Clear();
+
+        // TODO
+    }
+
+    // TODO Lick and Skip
 }
