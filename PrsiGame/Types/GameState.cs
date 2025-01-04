@@ -3,5 +3,5 @@
 public enum GameState
 {
     Started,
-    Ended
+    Finished
 }

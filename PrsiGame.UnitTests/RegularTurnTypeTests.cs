@@ -5,12 +5,18 @@ namespace PrsiGame.UnitTests;
 
 public class RegularTurnTypeTests
 {
+    private RegularTurn GetTurn()
+    {
+        var regularCard = RegularCard.Create(CardId.EightOfHearts).Value;
+        return RegularTurn.Create(new Player(CardsOnHand: [regularCard.Id]), regularCard);
+    }
+
     [Theory]
     [InlineData(CardId.EightOfClubs)]
     [InlineData(CardId.JackOfHearts)]
     public void Validate_WhenRegularCardWasPlayed_SucceedsIfColorOrValueMatches(CardId cardId)
     {
-        var turn = RegularTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), RegularCard.Create(CardId.EightOfHearts).Value);
+        var turn = GetTurn();
         var validationResult = turn.Validate(RegularCard.Create(cardId).Value, null, false);
 
         validationResult.IsSuccess.Should().BeTrue();
@@ -21,7 +27,7 @@ public class RegularTurnTypeTests
     [InlineData(CardId.JackOfDiamonds)]
     public void Validate_WhenRegularCardWasPlayed_FailsIfColorOrValueMismatches(CardId cardId)
     {
-        var turn = RegularTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), RegularCard.Create(CardId.EightOfHearts).Value);
+        var turn = GetTurn();
         var validationResult = turn.Validate(RegularCard.Create(cardId).Value, null, false);
 
         validationResult.IsSuccess.Should().BeFalse();
@@ -34,7 +40,7 @@ public class RegularTurnTypeTests
     [InlineData(CardId.AceOfDiamonds, true, false)]
     public void Validate_WhenAceCardWasPlayed(CardId cardId, bool applies, bool shouldPass)
     {
-        var turn = RegularTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), RegularCard.Create(CardId.EightOfHearts).Value);
+        var turn = GetTurn();
         var aceCard = AceCard.Create(cardId).Value;
         var validationResult = turn.Validate(aceCard, null, applies);
 
@@ -48,7 +54,7 @@ public class RegularTurnTypeTests
     [InlineData(CardId.SevenOfDiamonds, true, false)]
     public void Validate_WhenSevenWasPlayed(CardId cardId, bool applies, bool shouldPass)
     {
-        var turn = RegularTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), RegularCard.Create(CardId.EightOfHearts).Value);
+        var turn = GetTurn();
         var aceCard = SevenCard.Create(cardId).Value;
         var validationResult = turn.Validate(aceCard, null, applies);
 
@@ -63,7 +69,7 @@ public class RegularTurnTypeTests
     [InlineData(CardId.QueenOfDiamonds, true, CardColor.Diamonds, false)]
     public void Validate_WhenQueenIsPlayed(CardId cardId, bool applies, CardColor colorOverride, bool shouldPass)
     {
-        var turn = RegularTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), RegularCard.Create(CardId.EightOfHearts).Value);
+        var turn = GetTurn();
         var aceCard = QueenCard.Create(cardId).Value;
         var validationResult = turn.Validate(aceCard, colorOverride, applies);
 

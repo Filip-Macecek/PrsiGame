@@ -3,11 +3,9 @@ using PrsiGame.Errors;
 
 namespace PrsiGame.Types;
 
-public sealed record AceTurn : Turn
+public sealed record AceTurn : CardTurn
 {
-    public AceCard Card { get; }
-
-    private AceTurn(AceCard card, Player player) : base(player)
+    private AceTurn(AceCard card, Player player) : base(card, player)
     {
         Card = card;
     }
@@ -17,7 +15,7 @@ public sealed record AceTurn : Turn
         return new AceTurn(card, player);
     }
 
-    public Result Validate(Card card, CardColor? currentColorOverride, bool specialCardApplies)
+    protected override Result ValidateInternal(Card card, CardColor? currentColorOverride, bool specialCardApplies)
     {
         return card switch
         {

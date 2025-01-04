@@ -3,15 +3,13 @@ using PrsiGame.Errors;
 
 namespace PrsiGame.Types;
 
-public sealed record QueenTurn : Turn
+public sealed record QueenTurn : CardTurn
 {
-    private QueenTurn(Player player, QueenCard card, CardColor pickedColor) : base(player)
+    private QueenTurn(Player player, QueenCard card, CardColor pickedColor) : base(card, player)
     {
         Card = card;
         PickedColor = pickedColor;
     }
-
-    public QueenCard Card { get; }
 
     public CardColor PickedColor { get; }
 
@@ -20,7 +18,7 @@ public sealed record QueenTurn : Turn
         return new QueenTurn(player, card, pickedColor);
     }
 
-    public Result Validate(Card card, bool applies)
+    protected override Result ValidateInternal(Card card, CardColor? colorOverride, bool applies)
     {
         return card switch
         {

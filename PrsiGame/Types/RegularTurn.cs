@@ -3,21 +3,19 @@ using PrsiGame.Errors;
 
 namespace PrsiGame.Types;
 
-public sealed record RegularTurn : Turn
+public sealed record RegularTurn : CardTurn
 {
-    private RegularTurn(RegularCard card, Player player) : base(player)
+    private RegularTurn(RegularCard card, Player player) : base(card, player)
     {
         Card = card;
     }
-
-    public RegularCard Card { get; }
 
     public static RegularTurn Create(Player player, RegularCard card)
     {
         return new RegularTurn(card, player);
     }
 
-    public Result Validate(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
+    protected override Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
     {
         return lastCard switch
         {

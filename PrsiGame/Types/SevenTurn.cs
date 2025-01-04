@@ -3,21 +3,19 @@ using PrsiGame.Errors;
 
 namespace PrsiGame.Types;
 
-public sealed record SevenTurn : Turn
+public sealed record SevenTurn : CardTurn
 {
-    private SevenTurn(SevenCard card, Player player) : base(player)
+    private SevenTurn(SevenCard card, Player player) : base(card, player)
     {
         Card = card;
     }
-
-    public SevenCard Card { get; }
 
     public static SevenTurn Create(Player player, SevenCard card)
     {
         return new SevenTurn(card, player);
     }
 
-    public Result Validate(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
+    protected override Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
     {
         return lastCard switch
         {

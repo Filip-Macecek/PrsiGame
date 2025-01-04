@@ -7,7 +7,8 @@ public class QueenTurnTypeTests
 {
     private QueenTurn GetTurn()
     {
-        return QueenTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), QueenCard.Create(CardId.QueenOfHearts).Value, CardColor.Hearts);
+        var queenCard = QueenCard.Create(CardId.QueenOfHearts).Value;
+        return QueenTurn.Create(new Player(CardsOnHand: [queenCard.Id]), queenCard, CardColor.Hearts);
     }
 
     [Theory]
@@ -17,7 +18,7 @@ public class QueenTurnTypeTests
     {
         var regularCard = RegularCard.Create(cardId).Value;
         var turn = GetTurn();
-        var validationResult = turn.Validate(regularCard, applies: false);
+        var validationResult = turn.Validate(regularCard, null, specialCardApplies: false);
 
         validationResult.IsSuccess.Should().Be(shouldPass);
     }
@@ -31,7 +32,7 @@ public class QueenTurnTypeTests
     {
         var aceCard = AceCard.Create(cardId).Value;
         var turn = GetTurn();
-        var validationResult = turn.Validate(aceCard, applies);
+        var validationResult = turn.Validate(aceCard, null, applies);
 
         validationResult.IsSuccess.Should().Be(shouldPass);
     }
@@ -45,7 +46,7 @@ public class QueenTurnTypeTests
     {
         var sevenCard = SevenCard.Create(cardId).Value;
         var turn = GetTurn();
-        var validationResult = turn.Validate(sevenCard, applies);
+        var validationResult = turn.Validate(sevenCard, null, applies);
 
         validationResult.IsSuccess.Should().Be(shouldPass);
     }
@@ -57,7 +58,7 @@ public class QueenTurnTypeTests
     {
         var aceCard = QueenCard.Create(cardId).Value;
         var turn = GetTurn();
-        var validationResult = turn.Validate(aceCard, applies: false);
+        var validationResult = turn.Validate(aceCard, null, specialCardApplies: false);
 
         validationResult.IsSuccess.Should().Be(shouldPass);
     }

@@ -33,21 +33,19 @@ public static class PrsiEngine
         var players = Enumerable.Range(0, setup.PlayerCount).Select(i =>
         {
             var cards = Enumerable.Range(0, setup.PlayerCardCount).Select(_ => deck.Pop());
-            var state = i == 0 ? PlayerState.OnTurn : PlayerState.Waiting;
-
-            return new Player((uint)i, state,cards.ToList());
+            return new Player(cards.ToList());
         }).ToList();
 
         var firstDiscardCard = deck.Pop();
-        var currentColor = firstDiscardCard.ToColor();
 
         return new Game(
-            State: GameState.Started,
-            Setup: setup,
-            Turns: new Stack<Turn>(),
-            LickPile: deck,
-            DiscardPile: new Stack<CardId>([firstDiscardCard]),
-            Players: players
+            state: GameState.Started,
+            setup: setup,
+            turns: new Stack<Turn>(),
+            lickPile: deck,
+            discardPile: new Stack<CardId>([firstDiscardCard]),
+            players: players,
+            playerQueue: new Queue<Player>(players)
         );
     }
 

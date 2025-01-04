@@ -1,5 +1,4 @@
 ﻿using FluentAssertions;
-using PrsiGame.Common;
 using PrsiGame.Types;
 
 namespace PrsiGame.UnitTests.PrsiEngineTests;
@@ -19,7 +18,6 @@ public class NewGameTests
         game.Players.Should().AllSatisfy(p =>
         {
             p.CardsOnHand.Should().HaveCount(playerCardCount);
-            p.State.Should().Be(p.PlayerOrder == 0 ? PlayerState.OnTurn : PlayerState.Waiting);
         });
 
         game.State.Should().Be(GameState.Started);
