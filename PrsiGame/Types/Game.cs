@@ -24,7 +24,7 @@ public record Game
         Winners = new Stack<Player>();
     }
 
-    public GameState State { get; private set; }
+    public GameState State { get; set; }
 
     public GameSetup Setup { get; }
 
@@ -42,6 +42,11 @@ public record Game
 
     public Result AddTurn(Turn turn)
     {
+        if (State != GameState.Started)
+        {
+            return new InvalidGameStateError("The game is finished.");
+        }
+
         var currentPlayer = PlayerQueue.Peek();
         if (turn.Player != currentPlayer)
         {
@@ -75,7 +80,7 @@ public record Game
             }
         }
 
-        var singlePlayerLeft = (Players.Count - Winners.Count) > 0;
+        var singlePlayerLeft = (Players.Count - Winners.Count) == 1;
         State = singlePlayerLeft ? GameState.Finished : State;
 
         Turns.Push(turn);
@@ -84,7 +89,7 @@ public record Game
 
     public bool TopCardAppliesToCurrentTurn()
     {
-        var turnsCopy = new Stack<Turn>(Turns);
+        var turnsCopy = Turns.MakeCopy();
 
         if (!turnsCopy.TryPop(out var turn))
         {
@@ -105,7 +110,7 @@ public record Game
 
     public CardColor GetCurrentColor()
     {
-        var turnsCopy = new Stack<Turn>(Turns);
+        var turnsCopy = Turns.MakeCopy();
         var pickedColor = (CardColor?) null;
 
         while (pickedColor == null && turnsCopy.Count > 0)
@@ -143,7 +148,7 @@ public record Game
         if (turn is CardTurn cardTurn)
         {
             DiscardPile.Push(cardTurn.Card.Id);
-            var removeResult = turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
+            turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
         }
     }
 }

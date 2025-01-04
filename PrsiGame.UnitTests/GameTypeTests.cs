@@ -128,7 +128,7 @@ public class GameTypeTests
     }
 
     [Fact]
-    public void AddTurn_WhenRoundEndsWithWin_DoesntCueWinner()
+    public void AddTurn_WhenRoundEndsWithWin_DoesntQueueWinner()
     {
         var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
 
@@ -165,14 +165,37 @@ public class GameTypeTests
         var secondTurn = RegularTurn.Create(secondPlayer, RegularCard.Create(CardId.NineOfHearts).Value);
         game.AddTurn(secondTurn);
 
+        game.Turns.Peek().Should().Be(secondTurn);
+
         var thirdPlayer = game.Players[2];
         thirdPlayer.CardsOnHand.Clear();
         thirdPlayer.CardsOnHand.Add(CardId.QueenOfHearts);
         var thirdTurn = QueenTurn.Create(thirdPlayer, QueenCard.Create(CardId.QueenOfHearts).Value, CardColor.Diamonds);
-        var r = game.AddTurn(thirdTurn);
+        game.AddTurn(thirdTurn);
 
-        game.Winners.Should().HaveCount(1);
+        game.Turns.Peek().Should().Be(thirdTurn);
+
+        firstPlayer.CardsOnHand.Clear();
+        firstPlayer.CardsOnHand.Add(CardId.AceOfDiamonds);
+        game.AddTurn(AceTurn.Create(firstPlayer, AceCard.Create(CardId.AceOfDiamonds).Value));
+
+        game.Winners.Should().HaveCount(2);
         game.Winners.Should().Contain(thirdPlayer);
         game.State.Should().Be(GameState.Finished);
+    }
+
+    [Fact]
+    public void AddTurn_WhenGameIsFinished_Fails()
+    {
+        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
+
+        var firstPlayer = game.Players[0];
+        firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
+        var firstTurn = QueenTurn.Create(firstPlayer, QueenCard.Create(CardId.QueenOfSpades).Value, CardColor.Hearts);
+        game.State = GameState.Finished;
+        var result = game.AddTurn(firstTurn);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Errors.First().Should().BeOfType(typeof(InvalidGameStateError));
     }
 }
