@@ -6,7 +6,7 @@ namespace PrsiGame.Types;
 
 public abstract record Card
 {
-    protected Card(CardId cardId, CardType cardType, CardColor color, ushort cardValue)
+    protected Card(CardId cardId, CardType cardType, CardColor color, CardValue cardValue)
     {
         Id = cardId;
         CardType = cardType;
@@ -20,7 +20,7 @@ public abstract record Card
 
     public CardColor Color { get; }
 
-    public ushort CardValue { get; }
+    public CardValue CardValue { get; }
 
     protected static Result CheckType(CardType expectedType, CardId cardId)
     {

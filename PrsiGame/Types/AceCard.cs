@@ -5,7 +5,7 @@ namespace PrsiGame.Types;
 
 public sealed record AceCard : Card
 {
-    private AceCard(CardId cardId, CardType cardType, CardColor color, ushort cardValue) : base(cardId, cardType, color, cardValue)
+    private AceCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
     {
     }
 

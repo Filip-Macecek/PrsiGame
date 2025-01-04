@@ -1,12 +1,11 @@
 ﻿using FluentResults;
 using PrsiGame.Common;
-using PrsiGame.Errors;
 
 namespace PrsiGame.Types;
 
 public record class RegularCard : Card
 {
-    private RegularCard(CardId cardId, CardType cardType, CardColor color, ushort cardValue) : base(cardId, cardType, color, cardValue)
+    private RegularCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
     {
     }
 

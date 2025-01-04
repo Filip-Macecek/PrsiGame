@@ -26,6 +26,5 @@ public class NewGameTests
         game.Turns.Should().BeEmpty();
         game.LickPile.Should().HaveCount(32 - (playerCount * playerCardCount + 1));
         game.DiscardPile.Should().ContainSingle();
-        game.CurrentColor.Should().Be(game.DiscardPile.First().ToColor());
     }
 }

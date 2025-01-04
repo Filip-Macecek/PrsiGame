@@ -5,37 +5,68 @@ namespace PrsiGame.UnitTests;
 
 public class AceTurnTypeTests
 {
-    [Fact]
-    public void Validate_WhenPreviousTurnIsAce_Succeeds()
+    [Theory]
+    [InlineData(CardId.AceOfHearts)]
+    [InlineData(CardId.AceOfDiamonds)]
+    public void Validate_WhenAceWasPlayed_Succeeds(CardId cardId)
     {
-        var aceOfClubs = AceCard.Create(CardId.AceOfClubs).Value;
-        var previousTurn = AceTurn.Create(new Player(1, PlayerState.Waiting, CardsOnHand: []), aceOfClubs);
-        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfDiamonds).Value);
-
-        var validationResult = turn.Validate(previousTurn, aceOfClubs);
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(cardId).Value);
+        var validationResult = turn.Validate(AceCard.Create(CardId.AceOfClubs).Value, currentColorOverride: null, specialCardApplies: false);
 
         validationResult.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public void Validate_WhenPreviousTurnIsSkipAndColorMatches_Succeeds()
+    public void Validate_WhenRegularCardWasPlayedAndDoesntApply_SucceedsIfColorMatches()
     {
-        var previousTurn = SkipTurn.Create(new Player(1, PlayerState.Waiting, CardsOnHand: []));
-        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfDiamonds).Value);
-
-        var validationResult = turn.Validate(previousTurn, RegularCard.Create(CardId.EightOfDiamonds).Value);
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(RegularCard.Create(CardId.EightOfHearts).Value, currentColorOverride: null, specialCardApplies: false);
 
         validationResult.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
-    public void Validate_WhenPreviousTurnIsSkipAndColorMismatches_Failed()
+    public void Validate_WhenSevenCardWasPlayedAndApplies_Fails()
     {
-        var previousTurn = SkipTurn.Create(new Player(1, PlayerState.Waiting, CardsOnHand: []));
-        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfDiamonds).Value);
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(SevenCard.Create(CardId.SevenOfHearts).Value, currentColorOverride: null, specialCardApplies: true);
 
-        var validationResult = turn.Validate(previousTurn, RegularCard.Create(CardId.EightOfHearts).Value);
+        validationResult.IsSuccess.Should().BeFalse();
+    }
 
-        validationResult.IsFailed.Should().BeTrue();
+    [Fact]
+    public void Validate_WhenSevenCardWasPlayed_SucceedsIfTheCardDoesntApply()
+    {
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(SevenCard.Create(CardId.SevenOfHearts).Value, currentColorOverride: null, specialCardApplies: false);
+
+        validationResult.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_WhenSevenCardWasPlayed_FailsIfTheCardApplies()
+    {
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(SevenCard.Create(CardId.SevenOfHearts).Value, currentColorOverride: null, specialCardApplies: true);
+
+        validationResult.IsSuccess.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_WhenQueenWasPlayed_SucceedsIfColorMatches()
+    {
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(QueenCard.Create(CardId.QueenOfHearts).Value, currentColorOverride: CardColor.Hearts, specialCardApplies: false);
+
+        validationResult.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_WhenQueenWasPlayed_FailsIfColorMismatchWithOverride()
+    {
+        var turn = AceTurn.Create(new Player(0, PlayerState.OnTurn, CardsOnHand: []), AceCard.Create(CardId.AceOfHearts).Value);
+        var validationResult = turn.Validate(QueenCard.Create(CardId.QueenOfDiamonds).Value, currentColorOverride: CardColor.Clubs, specialCardApplies: false);
+
+        validationResult.IsSuccess.Should().BeFalse();
     }
 }

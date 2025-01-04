@@ -47,8 +47,7 @@ public static class PrsiEngine
             Turns: new Stack<Turn>(),
             LickPile: deck,
             DiscardPile: new Stack<CardId>([firstDiscardCard]),
-            Players: players,
-            CurrentColor: currentColor
+            Players: players
         );
     }
 

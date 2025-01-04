@@ -20,10 +20,10 @@ public static class TypeExtensions
         };
     }
 
-    public static ushort ToCardValue(this CardId cardId)
+    public static CardValue ToCardValue(this CardId cardId)
     {
         var cardColorDiscard = (int)cardId % CardColorOffset;
-        return (ushort)(cardColorDiscard + CardValueIndexOffset);
+        return (CardValue)(cardColorDiscard + CardValueIndexOffset);
     }
 
     public static CardType ToCardType(this CardId cardId)
@@ -39,7 +39,7 @@ public static class TypeExtensions
             case CardId.SevenOfDiamonds:
             case CardId.SevenOfHearts:
             case CardId.SevenOfSpades:
-                return CardType.Seventh;
+                return CardType.Seven;
             case CardId.QueenOfDiamonds:
             case CardId.QueenOfClubs:
             case CardId.QueenOfHearts:
@@ -57,7 +57,7 @@ public static class TypeExtensions
             CardType.Regular => RegularCard.Create(cardId).Value,
             CardType.Ace => AceCard.Create(cardId).Value,
             CardType.Queen => QueenCard.Create(cardId).Value,
-            CardType.Seventh => SevenCard.Create(cardId).Value,
+            CardType.Seven => SevenCard.Create(cardId).Value,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
