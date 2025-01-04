@@ -1,11 +1,8 @@
-﻿using FluentResults;
-using PrsiGame.Common;
-using PrsiGame.Errors;
-using PrsiGame.Types;
+﻿using PrsiGame.Types;
 
 namespace PrsiGame;
 
-public static class PrsiEngine
+public static class GameFactory
 {
     private const ushort CardCount = 32;
 
@@ -48,32 +45,4 @@ public static class PrsiEngine
             playerQueue: new Queue<Player>(players)
         );
     }
-
-    // public static Result PlayRegularCard(Game game, Player player, RegularCard card)
-    // {
-    //     if (!(player.State == PlayerState.OnTurn || player.CardsOnHand.Contains(card.Id)))
-    //     {
-    //         return new InvalidTurnError("It's not the player's turn or the card is not in player's hand.");
-    //     }
-    //
-    //     if (game.State != GameState.Ended)
-    //     {
-    //         return new InvalidGameStateError("Game is not in progress.");
-    //     }
-    //
-    //     if (game.CurrentColor != card.Color)
-    //     {
-    //         return new InvalidTurnError($"The card to be discarded is wrong color. Current color is {card.Color.ToString()}");
-    //     }
-    //
-    //     var discardPileTop = game.DiscardPile.Peek().ToCardObject();
-    //     return discardPileTop switch
-    //     {
-    //         RegularCard regularCard => ,
-    //         AceCard aceCard => throw new NotImplementedException(),
-    //         QueenCard queenCard => throw new NotImplementedException(),
-    //         SevenCard sevenCard => throw new NotImplementedException(),
-    //         _ => throw new ArgumentOutOfRangeException(nameof(discardPileTop))
-    //     };
-    // }
 }

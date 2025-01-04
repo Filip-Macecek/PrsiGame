@@ -9,7 +9,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_FirstTurn_Succeeds()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
 
         var player = game.Players.First();
         player.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -27,7 +27,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_FirstTurn_RemovesCardFromPlayerHand()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
 
         var player = game.Players.First();
         player.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -43,7 +43,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenPlayerDiscardsLastCard_IsAddedToWinners()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
 
         var player = game.Players.First();
         player.CardsOnHand.Clear();
@@ -63,7 +63,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenPlayersHandIsEmpty_Fails()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
 
         var player = game.Players.First();
         player.CardsOnHand.Clear();
@@ -77,7 +77,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenItsNotPlayersTurn_Fails()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 5, PlayerCardCount: 5));
 
         var queenTurn = QueenTurn.Create(game.Players[1], QueenCard.Create(CardId.QueenOfSpades).Value, CardColor.Hearts);
         var result = game.AddTurn(queenTurn);
@@ -88,7 +88,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenInvalidTurnIsMade_Fails()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
 
         var firstPlayer = game.Players[0];
         firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -109,7 +109,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenEverybodyTurnedInARound_QueuesPlayersForNewRound()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
 
         var firstPlayer = game.Players[0];
         firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -130,7 +130,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenRoundEndsWithWin_DoesntQueueWinner()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 2, PlayerCardCount: 5));
 
         var firstPlayer = game.Players[0];
         firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -153,7 +153,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenRoundEndsWithWinSinglePlayerInGame_SetsStateToFinished()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
 
         var firstPlayer = game.Players[0];
         firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -187,7 +187,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_WhenGameIsFinished_Fails()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
 
         var firstPlayer = game.Players[0];
         firstPlayer.CardsOnHand[0] = CardId.QueenOfSpades;
@@ -202,7 +202,7 @@ public class GameTypeTests
     [Fact]
     public void AddTurn_LickPileIsEmpty_PutsDiscardPileAsLickPile()
     {
-        var game = PrsiEngine.NewGame(PrsiEngine.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
+        var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup(PlayerCount: 3, PlayerCardCount: 5));
 
         game.DiscardPile.Clear();
         game.DiscardPile.Push(CardId.QueenOfClubs);

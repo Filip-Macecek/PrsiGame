@@ -186,7 +186,6 @@ public record Game
                     }
                     turn.Player.CardsOnHand.Add(lickedCard);
                 }
-
                 break;
         }
     }

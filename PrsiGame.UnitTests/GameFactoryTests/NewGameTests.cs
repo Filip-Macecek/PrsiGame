@@ -11,8 +11,8 @@ public class NewGameTests
     [InlineData(4, 4)]
     public void NewGame_ReturnsValidGame(ushort playerCount, ushort playerCardCount)
     {
-        var deck = PrsiEngine.ShuffleCards();
-        var game = PrsiEngine.NewGame(deck, new GameSetup(playerCount, playerCardCount));
+        var deck = GameFactory.ShuffleCards();
+        var game = GameFactory.NewGame(deck, new GameSetup(playerCount, playerCardCount));
 
         game.Players.Should().HaveCount(playerCount);
         game.Players.Should().AllSatisfy(p =>

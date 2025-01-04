@@ -8,7 +8,7 @@ public class ShuffleCardsTests
     [Fact]
     public void ShuffleCards_HaveCorrectCardCount()
     {
-        var shuffledCards = PrsiEngine.ShuffleCards();
+        var shuffledCards = GameFactory.ShuffleCards();
 
         shuffledCards.Should().NotBeEmpty();
         shuffledCards.Should().HaveCount(32);
@@ -17,7 +17,7 @@ public class ShuffleCardsTests
     [Fact]
     public void ShuffleCards_EveryCardIsDifferent()
     {
-        var shuffledCards = PrsiEngine.ShuffleCards();
+        var shuffledCards = GameFactory.ShuffleCards();
         var visitedCards = new HashSet<CardId>();
 
         foreach (var card in shuffledCards)
@@ -30,8 +30,8 @@ public class ShuffleCardsTests
     [Fact]
     public void ShuffleCards_OrderIsRandomize()
     {
-        var deckA = PrsiEngine.ShuffleCards().ToList();
-        var deckB = PrsiEngine.ShuffleCards().ToList();
+        var deckA = GameFactory.ShuffleCards().ToList();
+        var deckB = GameFactory.ShuffleCards().ToList();
         var hasDifference = false;
 
         for (var i = 0; i < 32; i++)
