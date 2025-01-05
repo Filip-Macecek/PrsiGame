@@ -1,26 +1,27 @@
 ﻿using FluentResults;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public sealed record SkipTurn : Turn
+namespace PrsiGame.Types
 {
-    private SkipTurn(Player player) : base(player)
+    public sealed class SkipTurn : Turn
     {
-    }
-
-    public static SkipTurn Create(Player player)
-    {
-        return new SkipTurn(player);
-    }
-
-    public Result Validate(Turn previousTurn)
-    {
-        if (previousTurn is not AceTurn)
+        private SkipTurn(Player player) : base(player)
         {
-            return new InvalidTurnError("Turn can only be skipped if the previous player played an ace.");
         }
 
-        return Result.Ok();
+        public static SkipTurn Create(Player player)
+        {
+            return new SkipTurn(player);
+        }
+
+        public Result Validate(Turn previousTurn)
+        {
+            if (!(previousTurn is AceTurn))
+            {
+                return new InvalidTurnError("Turn can only be skipped if the previous player played an ace.");
+            }
+
+            return Result.Ok();
+        }
     }
 }

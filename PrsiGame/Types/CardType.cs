@@ -1,9 +1,10 @@
-﻿namespace PrsiGame.Types;
-
-public enum CardType
+﻿namespace PrsiGame.Types
 {
-    Regular = 1,
-    Seven = 2,
-    Queen = 3,
-    Ace = 4
+    public enum CardType
+    {
+        Regular = 1,
+        Seven = 2,
+        Queen = 3,
+        Ace = 4
+    }
 }

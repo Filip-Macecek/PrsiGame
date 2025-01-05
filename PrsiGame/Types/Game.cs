@@ -1,192 +1,211 @@
-﻿using FluentResults;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using FluentResults;
 using PrsiGame.Common;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public record Game
+namespace PrsiGame.Types
 {
-    internal Game(GameState state,
-        GameSetup setup,
-        Stack<Turn> turns,
-        Stack<CardId> lickPile,
-        Stack<CardId> discardPile,
-        IReadOnlyList<Player> players,
-        Queue<Player> playerQueue)
+    public class Game
     {
-        State = state;
-        Setup = setup;
-        Turns = turns;
-        LickPile = lickPile;
-        DiscardPile = discardPile;
-        Players = players;
-        PlayerQueue = playerQueue;
-        Winners = new Stack<Player>();
-    }
-
-    public GameState State { get; set; }
-
-    public GameSetup Setup { get; }
-
-    public Stack<Turn> Turns { get; }
-
-    public Stack<CardId> LickPile { get; set; }
-
-    public Stack<CardId> DiscardPile { get; }
-
-    public IReadOnlyList<Player> Players { get; }
-
-    public Queue<Player> PlayerQueue { get;  }
-
-    public Stack<Player> Winners { get; }
-
-    public Result AddTurn(Turn turn)
-    {
-        if (State != GameState.Started)
+        internal Game(GameState state,
+            GameSetup setup,
+            Stack<Turn> turns,
+            Stack<CardId> lickPile,
+            Stack<CardId> discardPile,
+            IReadOnlyList<Player> players,
+            Queue<Player> playerQueue)
         {
-            return new InvalidGameStateError("The game is finished.");
+            State = state;
+            Setup = setup;
+            Turns = turns;
+            LickPile = lickPile;
+            DiscardPile = discardPile;
+            Players = players;
+            PlayerQueue = playerQueue;
+            Winners = new Stack<Player>();
         }
 
-        var currentPlayer = PlayerQueue.Peek();
-        if (turn.Player != currentPlayer)
-        {
-            return new InvalidPlayerError("It's not the player's turn.");
-        }
+        public GameState State { get; set; }
 
-        var validationResult = turn switch
-        {
-            CardTurn cardTurn => cardTurn.Validate(DiscardPile.Peek().ToCardObject(), GetCurrentColor(), TopCardAppliesToCurrentTurn()),
-            SkipTurn skipTurn => skipTurn.Validate(Turns.Peek()),
-            LickTurn lickTurn => lickTurn.Validate(Turns.Peek().ToTurnType(), GetRequiredLicks()),
-            _ => throw new ArgumentOutOfRangeException(nameof(turn))
-        };
+        public GameSetup Setup { get; }
 
-        if (validationResult.IsFailed)
-        {
-            return validationResult;
-        }
+        public Stack<Turn> Turns { get; }
 
-        ApplyTurn(turn);
+        public Stack<CardId> LickPile { get; set; }
 
-        if (turn.Player.CardsOnHand.Count == 0)
-        {
-            Winners.Push(turn.Player);
-        }
+        public Stack<CardId> DiscardPile { get; }
 
-        _ = PlayerQueue.Dequeue();
-        if (PlayerQueue.Count == 0)
+        public IReadOnlyList<Player> Players { get; }
+
+        public Queue<Player> PlayerQueue { get;  }
+
+        public Stack<Player> Winners { get; }
+
+        public Result AddTurn(Turn turn)
         {
-            foreach (var player in Players.Except(Winners))
+            if (State != GameState.Started)
             {
-                PlayerQueue.Enqueue(player);
+                return new InvalidGameStateError("The game is finished.");
             }
-        }
 
-        var singlePlayerLeft = (Players.Count - Winners.Count) == 1;
-        State = singlePlayerLeft ? GameState.Finished : State;
+            var currentPlayer = PlayerQueue.Peek();
+            if (turn.Player != currentPlayer)
+            {
+                return new InvalidPlayerError("It's not the player's turn.");
+            }
 
-        Turns.Push(turn);
-        return Result.Ok();
-    }
-
-    public bool TopCardAppliesToCurrentTurn()
-    {
-        var turnsCopy = Turns.MakeCopy();
-
-        if (!turnsCopy.TryPop(out var turn))
-        {
-            return false;
-        }
-
-        return turn switch
-        {
-            AceTurn aceTurn => true,
-            LickTurn lickTurn => false,
-            QueenTurn queenTurn => false,
-            RegularTurn regularTurn => false,
-            SevenTurn sevenTurn => true,
-            SkipTurn skipTurn => false,
-            _ => false
-        };
-    }
-
-    public CardColor GetCurrentColor()
-    {
-        var turnsCopy = Turns.MakeCopy();
-        var pickedColor = (CardColor?) null;
-
-        while (pickedColor == null && turnsCopy.Count > 0)
-        {
-            var turn = turnsCopy.Pop();
-
+            Result validationResult;
             switch (turn)
             {
-                case AceTurn aceTurn:
-                    pickedColor = aceTurn.Card.Color;
+                case CardTurn cardTurn:
+                    validationResult = cardTurn.Validate(DiscardPile.Peek().ToCardObject(), GetCurrentColor(),
+                        TopCardAppliesToCurrentTurn());
                     break;
-                case LickTurn _:
+                case SkipTurn skipTurn:
+                    validationResult = skipTurn.Validate(Turns.Peek());
                     break;
-                case QueenTurn queenTurn:
-                    pickedColor = queenTurn.PickedColor;
-                    break;
-                case RegularTurn regularTurn:
-                    pickedColor = regularTurn.Card.Color;
-                    break;
-                case SevenTurn sevenTurn:
-                    pickedColor = sevenTurn.Card.Color;
-                    break;
-                case SkipTurn _:
+                case LickTurn lickTurn:
+                    validationResult = lickTurn.Validate(Turns.Peek().ToTurnType(), GetRequiredLicks());
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(turn));
             }
-        }
 
-        return pickedColor ?? DiscardPile.Peek().ToColor();
-    }
-
-    public int? GetRequiredLicks()
-    {
-        var turnsCopy = Turns.MakeCopy();
-        var requiredLicks = (int?) null;
-
-        while (requiredLicks == null && turnsCopy.Count > 0)
-        {
-            var turn = turnsCopy.Pop();
-            if (turn is SevenTurn sevenTurn)
+            if (validationResult.IsFailed)
             {
-                requiredLicks = requiredLicks.HasValue ? requiredLicks + 2 : 2;
+                return validationResult;
             }
-            else
+
+            ApplyTurn(turn);
+
+            if (turn.Player.CardsOnHand.Count == 0)
             {
-                break;
+                Winners.Push(turn.Player);
             }
-        }
 
-        return requiredLicks;
-    }
-
-    private void ApplyTurn(Turn turn)
-    {
-        switch (turn)
-        {
-            case CardTurn cardTurn:
-                DiscardPile.Push(cardTurn.Card.Id);
-                turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
-                break;
-            case SkipTurn:
-                break;
-            case LickTurn lickTurn:
-                for (var i = 0; i < lickTurn.LickCount; i++)
+            _ = PlayerQueue.Dequeue();
+            if (PlayerQueue.Count == 0)
+            {
+                foreach (var player in Players.Except(Winners))
                 {
-                    if (!LickPile.TryPop(out var lickedCard))
-                    {
-                        LickPile = new Stack<CardId>(DiscardPile.ToList());
-                        DiscardPile.Clear();
-                    }
-                    turn.Player.CardsOnHand.Add(lickedCard);
+                    PlayerQueue.Enqueue(player);
                 }
-                break;
+            }
+
+            var singlePlayerLeft = (Players.Count - Winners.Count) == 1;
+            State = singlePlayerLeft ? GameState.Finished : State;
+
+            Turns.Push(turn);
+            return Result.Ok();
+        }
+
+        public bool TopCardAppliesToCurrentTurn()
+        {
+            var turnsCopy = Turns.MakeCopy();
+
+            if (turnsCopy.Count == 0)
+            {
+                return false;
+            }
+
+            var turn = turnsCopy.Pop();
+            switch (turn)
+            {
+                case AceTurn aceTurn:
+                    return true;
+                case LickTurn lickTurn:
+                case QueenTurn queenTurn:
+                case RegularTurn regularTurn:
+                    return false;
+                case SevenTurn sevenTurn:
+                    return true;
+                case SkipTurn skipTurn:
+                default:
+                    return false;
+            }
+        }
+
+        public CardColor GetCurrentColor()
+        {
+            var turnsCopy = Turns.MakeCopy();
+            var pickedColor = (CardColor?) null;
+
+            while (pickedColor == null && turnsCopy.Count > 0)
+            {
+                var turn = turnsCopy.Pop();
+
+                switch (turn)
+                {
+                    case AceTurn aceTurn:
+                        pickedColor = aceTurn.Card.Color;
+                        break;
+                    case LickTurn _:
+                        break;
+                    case QueenTurn queenTurn:
+                        pickedColor = queenTurn.PickedColor;
+                        break;
+                    case RegularTurn regularTurn:
+                        pickedColor = regularTurn.Card.Color;
+                        break;
+                    case SevenTurn sevenTurn:
+                        pickedColor = sevenTurn.Card.Color;
+                        break;
+                    case SkipTurn _:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(turn));
+                }
+            }
+
+            return pickedColor ?? DiscardPile.Peek().ToColor();
+        }
+
+        public int? GetRequiredLicks()
+        {
+            var turnsCopy = Turns.MakeCopy();
+            var requiredLicks = (int?) null;
+
+            while (requiredLicks == null && turnsCopy.Count > 0)
+            {
+                var turn = turnsCopy.Pop();
+                if (turn is SevenTurn sevenTurn)
+                {
+                    requiredLicks = requiredLicks.HasValue ? requiredLicks + 2 : 2;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return requiredLicks;
+        }
+
+        private void ApplyTurn(Turn turn)
+        {
+            switch (turn)
+            {
+                case CardTurn cardTurn:
+                    DiscardPile.Push(cardTurn.Card.Id);
+                    turn.Player.CardsOnHand.Remove(cardTurn.Card.Id);
+                    break;
+                case SkipTurn _:
+                    break;
+                case LickTurn lickTurn:
+                    for (var i = 0; i < lickTurn.LickCount; i++)
+                    {
+                        if (LickPile.Count == 0)
+                        {
+                            LickPile = new Stack<CardId>(DiscardPile.ToList());
+                            DiscardPile.Clear();
+                        }
+                        var lickedCard = LickPile.Pop();
+                        turn.Player.CardsOnHand.Add(lickedCard);
+                    }
+                    break;
+            }
         }
     }
 }

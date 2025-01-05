@@ -1,9 +1,10 @@
-﻿namespace PrsiGame.Types;
-
-public enum PlayerState
+﻿namespace PrsiGame.Types
 {
-    Waiting = 1,
-    OnTurn = 2,
-    Stunned = 3,
-    OutOfCards = 4
+    public enum PlayerState
+    {
+        Waiting = 1,
+        OnTurn = 2,
+        Stunned = 3,
+        OutOfCards = 4
+    }
 }

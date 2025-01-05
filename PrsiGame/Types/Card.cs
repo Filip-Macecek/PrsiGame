@@ -2,33 +2,34 @@
 using PrsiGame.Common;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public abstract record Card
+namespace PrsiGame.Types
 {
-    protected Card(CardId cardId, CardType cardType, CardColor color, CardValue cardValue)
+    public abstract class Card
     {
-        Id = cardId;
-        CardType = cardType;
-        Color = color;
-        CardValue = cardValue;
-    }
-
-    public CardId Id { get; }
-
-    public CardType CardType { get; }
-
-    public CardColor Color { get; }
-
-    public CardValue CardValue { get; }
-
-    protected static Result CheckType(CardType expectedType, CardId cardId)
-    {
-        if (cardId.ToCardType() != expectedType)
+        protected Card(CardId cardId, CardType cardType, CardColor color, CardValue cardValue)
         {
-            return new InvalidCardTypeError($"Expected {CardType.Regular.ToString()} but got {cardId.ToCardType().ToString()} instead.");
+            Id = cardId;
+            CardType = cardType;
+            Color = color;
+            CardValue = cardValue;
         }
 
-        return Result.Ok();
+        public CardId Id { get; }
+
+        public CardType CardType { get; }
+
+        public CardColor Color { get; }
+
+        public CardValue CardValue { get; }
+
+        protected static Result CheckType(CardType expectedType, CardId cardId)
+        {
+            if (cardId.ToCardType() != expectedType)
+            {
+                return new InvalidCardTypeError($"Expected {CardType.Regular.ToString()} but got {cardId.ToCardType().ToString()} instead.");
+            }
+
+            return Result.Ok();
+        }
     }
 }

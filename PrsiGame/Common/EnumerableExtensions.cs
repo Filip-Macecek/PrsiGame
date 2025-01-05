@@ -1,16 +1,20 @@
-﻿namespace PrsiGame.Common;
+﻿using System.Collections.Generic;
+using System.Linq;
 
-public static class EnumerableExtensions
+namespace PrsiGame.Common
 {
-    public static Stack<T> MakeCopy<T>(this Stack<T> stack)
+    public static class EnumerableExtensions
     {
-        var newStack = new Stack<T>();
-
-        foreach (var item in stack.Reverse())
+        public static Stack<T> MakeCopy<T>(this Stack<T> stack)
         {
-            newStack.Push(item);
-        }
+            var newStack = new Stack<T>();
 
-        return newStack;
+            foreach (var item in stack.Reverse())
+            {
+                newStack.Push(item);
+            }
+
+            return newStack;
+        }
     }
 }

@@ -1,9 +1,10 @@
-﻿namespace PrsiGame.Types;
-
-public enum CardColor
+﻿namespace PrsiGame.Types
 {
-    Hearts,
-    Diamonds,
-    Clubs,
-    Spades
+    public enum CardColor
+    {
+        Hearts,
+        Diamonds,
+        Clubs,
+        Spades
+    }
 }

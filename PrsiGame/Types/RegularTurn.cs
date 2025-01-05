@@ -1,59 +1,65 @@
-﻿using FluentResults;
+﻿using System;
+using FluentResults;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public sealed record RegularTurn : CardTurn
+namespace PrsiGame.Types
 {
-    private RegularTurn(RegularCard card, Player player) : base(card, player)
+    public sealed class RegularTurn : CardTurn
     {
-        Card = card;
-    }
-
-    public static RegularTurn Create(Player player, RegularCard card)
-    {
-        return new RegularTurn(card, player);
-    }
-
-    protected override Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
-    {
-        return lastCard switch
+        private RegularTurn(RegularCard card, Player player) : base(card, player)
         {
-            AceCard aceCard => Validate(aceCard, specialCardApplies),
-            QueenCard queenCard => Validate(queenCard.CardValue, colorOverride!.Value),
-            RegularCard regularCard => Validate(regularCard.CardValue, regularCard.Color),
-            SevenCard sevenCard => Validate(sevenCard, specialCardApplies),
-            _ => throw new ArgumentOutOfRangeException(nameof(lastCard))
-        };
-    }
-
-    private Result Validate(CardValue cardValue, CardColor color)
-    {
-        if (cardValue != Card.CardValue && color != Card.Color)
-        {
-            return new InvalidTurnError("Card value or color does not match.");
         }
 
-        return Result.Ok();
-    }
-
-    private Result Validate(AceCard card, bool applies)
-    {
-        if (applies)
+        public static RegularTurn Create(Player player, RegularCard card)
         {
-            return new InvalidTurnError("The player is stunned.");
+            return new RegularTurn(card, player);
         }
 
-        return Validate(card.CardValue, card.Color);
-    }
-
-    private Result Validate(SevenCard card, bool applies)
-    {
-        if (applies)
+        protected override Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
         {
-            return new InvalidTurnError("The player is stunned.");
+            switch (lastCard)
+            {
+                case AceCard aceCard:
+                    return Validate(aceCard, specialCardApplies);
+                case QueenCard queenCard:
+                    return Validate(queenCard.CardValue, colorOverride.Value);
+                case RegularCard regularCard:
+                    return Validate(regularCard.CardValue, regularCard.Color);
+                case SevenCard sevenCard:
+                    return Validate(sevenCard, specialCardApplies);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(lastCard));
+            }
         }
 
-        return Validate(card.CardValue, card.Color);
+        private Result Validate(CardValue cardValue, CardColor color)
+        {
+            if (cardValue != Card.CardValue && color != Card.Color)
+            {
+                return new InvalidTurnError("Card value or color does not match.");
+            }
+
+            return Result.Ok();
+        }
+
+        private Result Validate(AceCard card, bool applies)
+        {
+            if (applies)
+            {
+                return new InvalidTurnError("The player is stunned.");
+            }
+
+            return Validate(card.CardValue, card.Color);
+        }
+
+        private Result Validate(SevenCard card, bool applies)
+        {
+            if (applies)
+            {
+                return new InvalidTurnError("The player is stunned.");
+            }
+
+            return Validate(card.CardValue, card.Color);
+        }
     }
 }

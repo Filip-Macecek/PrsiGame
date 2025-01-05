@@ -1,5 +1,11 @@
 ﻿using FluentResults;
 
-namespace PrsiGame.Errors;
-
-public class InvalidCardTypeError(string message) : Error(message);
+namespace PrsiGame.Errors
+{
+    public class InvalidCardTypeError : Error
+    {
+        public InvalidCardTypeError(string message) : base(message)
+        {
+        }
+    }
+}

@@ -1,3 +1,12 @@
-﻿namespace PrsiGame.Types;
+﻿namespace PrsiGame.Types
+{
+    public abstract class Turn
+    {
+        public Player Player { get; }
 
-public abstract record Turn(Player Player);
+        protected Turn(Player Player)
+        {
+            this.Player = Player;
+        }
+    }
+}

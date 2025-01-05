@@ -1,54 +1,60 @@
-﻿using FluentResults;
+﻿using System;
+using FluentResults;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public sealed record AceTurn : CardTurn
+namespace PrsiGame.Types
 {
-    private AceTurn(AceCard card, Player player) : base(card, player)
+    public sealed class AceTurn : CardTurn
     {
-        Card = card;
-    }
-
-    public static AceTurn Create(Player player, AceCard card)
-    {
-        return new AceTurn(card, player);
-    }
-
-    protected override Result ValidateInternal(Card card, CardColor? currentColorOverride, bool specialCardApplies)
-    {
-        return card switch
+        private AceTurn(AceCard card, Player player) : base(card, player)
         {
-            AceCard aceCard => Result.Ok(),
-            QueenCard queenCard => Validate(currentColorOverride!.Value),
-            RegularCard regularCard => Validate(regularCard.Color),
-            SevenCard sevenCard => Validate(sevenCard, specialCardApplies),
-            _ => throw new ArgumentOutOfRangeException(nameof(card))
-        };
-    }
-
-    private Result Validate(SevenCard sevenCard, bool applies)
-    {
-        if (applies)
-        {
-            return new InvalidTurnError("Player must lick the pile.");
         }
 
-        if (sevenCard.Color != Card.Color)
+        public static AceTurn Create(Player player, AceCard card)
         {
-            return new InvalidTurnError("Card colors do not match.");
+            return new AceTurn(card, player);
         }
 
-        return Result.Ok();
-    }
-
-    private Result Validate(CardColor color)
-    {
-        if (Card.Color != color)
+        protected override Result ValidateInternal(Card card, CardColor? currentColorOverride, bool specialCardApplies)
         {
-            return new InvalidTurnError("Colors do not match.");
+            switch (card)
+            {
+                case AceCard aceCard:
+                    return Result.Ok();
+                case QueenCard queenCard:
+                    return Validate(currentColorOverride.Value);
+                case RegularCard regularCard:
+                    return Validate(regularCard.Color);
+                case SevenCard sevenCard:
+                    return Validate(sevenCard, specialCardApplies);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(card));
+            }
         }
 
-        return Result.Ok();
+        private Result Validate(SevenCard sevenCard, bool applies)
+        {
+            if (applies)
+            {
+                return new InvalidTurnError("Player must lick the pile.");
+            }
+
+            if (sevenCard.Color != Card.Color)
+            {
+                return new InvalidTurnError("Card colors do not match.");
+            }
+
+            return Result.Ok();
+        }
+
+        private Result Validate(CardColor color)
+        {
+            if (Card.Color != color)
+            {
+                return new InvalidTurnError("Colors do not match.");
+            }
+
+            return Result.Ok();
+        }
     }
 }

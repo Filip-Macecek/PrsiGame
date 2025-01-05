@@ -1,7 +1,8 @@
-﻿namespace PrsiGame.Types;
-
-public enum GameState
+﻿namespace PrsiGame.Types
 {
-    Started,
-    Finished
+    public enum GameState
+    {
+        Started,
+        Finished
+    }
 }

@@ -1,5 +1,11 @@
 ﻿using FluentResults;
 
-namespace PrsiGame.Errors;
-
-public class InvalidGameStateError(string message) : Error(message);
+namespace PrsiGame.Errors
+{
+    public class InvalidGameStateError : Error
+    {
+        public InvalidGameStateError(string message) : base(message)
+        {
+        }
+    }
+}

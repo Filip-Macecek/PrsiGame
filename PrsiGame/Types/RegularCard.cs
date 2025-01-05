@@ -1,45 +1,46 @@
 ﻿using FluentResults;
 using PrsiGame.Common;
 
-namespace PrsiGame.Types;
-
-public record class RegularCard : Card
+namespace PrsiGame.Types
 {
-    private RegularCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
+    public class RegularCard : Card
     {
-    }
-
-    public static Result<RegularCard> Create(CardId cardId)
-    {
-        var checkType = CheckType(CardType.Regular, cardId);
-        if (checkType.IsFailed)
+        private RegularCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
         {
-            return checkType;
         }
 
-        return new RegularCard(cardId, cardId.ToCardType(), cardId.ToColor(), cardId.ToCardValue());
-    }
+        public static Result<RegularCard> Create(CardId cardId)
+        {
+            var checkType = CheckType(CardType.Regular, cardId);
+            if (checkType.IsFailed)
+            {
+                return checkType;
+            }
 
-    // public Result ValidateAsTopOfPile(RegularCard previousTop)
-    // {
-    //     if (previousTop.Color != Color || previousTop.CardValue != CardValue)
-    //     {
-    //         return new InvalidTurnError("Color or value does not match the top of the discard pile.");
-    //     }
-    //
-    //     return Result.Ok();
-    // }
-    //
-    // public Result ValidateAsTopOfPile(AceCard previousTop, Turn previousTurn)
-    // {
-    //     if (previousTop.Color != Color)
-    //     {
-    //         return new InvalidTurnError("Color does not match the top of the discard pile.");
-    //     }
-    //
-    //     if (previousTurn.TurnType != TurnType.Skip)
-    //     {
-    //         return new InvalidTurnError("");
-    //     }
-    // }
+            return new RegularCard(cardId, cardId.ToCardType(), cardId.ToColor(), cardId.ToCardValue());
+        }
+
+        // public Result ValidateAsTopOfPile(RegularCard previousTop)
+        // {
+        //     if (previousTop.Color != Color || previousTop.CardValue != CardValue)
+        //     {
+        //         return new InvalidTurnError("Color or value does not match the top of the discard pile.");
+        //     }
+        //
+        //     return Result.Ok();
+        // }
+        //
+        // public Result ValidateAsTopOfPile(AceCard previousTop, Turn previousTurn)
+        // {
+        //     if (previousTop.Color != Color)
+        //     {
+        //         return new InvalidTurnError("Color does not match the top of the discard pile.");
+        //     }
+        //
+        //     if (previousTurn.TurnType != TurnType.Skip)
+        //     {
+        //         return new InvalidTurnError("");
+        //     }
+        // }
+    }
 }

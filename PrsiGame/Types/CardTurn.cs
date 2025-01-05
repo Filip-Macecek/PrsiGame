@@ -1,16 +1,26 @@
 ﻿using FluentResults;
 using PrsiGame.Errors;
 
-namespace PrsiGame.Types;
-
-public abstract record CardTurn(Card Card, Player Player) : Turn(Player)
+namespace PrsiGame.Types
 {
-    public Result Validate(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
+    public abstract class CardTurn : Turn
     {
-        return Result
-            .FailIf(!Player.CardsOnHand.Contains(Card.Id), () => new InvalidTurnError("Card is not in the player's hand."))
-            .Bind(() => ValidateInternal(lastCard, colorOverride, specialCardApplies));
-    }
+        public Card Card { get; }
+        public Player Player { get; }
 
-    protected abstract Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies);
+        protected CardTurn(Card Card, Player Player) : base(Player)
+        {
+            this.Card = Card;
+            this.Player = Player;
+        }
+
+        public Result Validate(Card lastCard, CardColor? colorOverride, bool specialCardApplies)
+        {
+            return Result
+                .FailIf(!Player.CardsOnHand.Contains(Card.Id), () => new InvalidTurnError("Card is not in the player's hand."))
+                .Bind(() => ValidateInternal(lastCard, colorOverride, specialCardApplies));
+        }
+
+        protected abstract Result ValidateInternal(Card lastCard, CardColor? colorOverride, bool specialCardApplies);
+    }
 }

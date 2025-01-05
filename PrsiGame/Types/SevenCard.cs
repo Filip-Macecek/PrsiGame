@@ -1,22 +1,23 @@
 ﻿using FluentResults;
 using PrsiGame.Common;
 
-namespace PrsiGame.Types;
-
-public sealed record SevenCard : Card
+namespace PrsiGame.Types
 {
-    private SevenCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
+    public sealed class SevenCard : Card
     {
-    }
-
-    public static Result<SevenCard> Create(CardId cardId)
-    {
-        var checkType = CheckType(CardType.Seven, cardId);
-        if (checkType.IsFailed)
+        private SevenCard(CardId cardId, CardType cardType, CardColor color, CardValue cardValue) : base(cardId, cardType, color, cardValue)
         {
-            return checkType;
         }
 
-        return new SevenCard(cardId, cardId.ToCardType(), cardId.ToColor(), cardId.ToCardValue());
+        public static Result<SevenCard> Create(CardId cardId)
+        {
+            var checkType = CheckType(CardType.Seven, cardId);
+            if (checkType.IsFailed)
+            {
+                return checkType;
+            }
+
+            return new SevenCard(cardId, cardId.ToCardType(), cardId.ToColor(), cardId.ToCardValue());
+        }
     }
 }
