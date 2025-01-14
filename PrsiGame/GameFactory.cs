@@ -48,5 +48,22 @@ namespace PrsiGame
                 playerQueue: new Queue<Player>(players)
             );
         }
+
+        public static Game NewGame(List<Player> players, CardId topCard)
+        {
+            var playerCards = players.SelectMany(p => p.CardsOnHand);
+            var deck = new Stack<CardId>(ShuffleCards().Except(playerCards).Except(new []{ topCard }));
+            var setup = new GameSetup((ushort)players.Count, PlayerCardCount: 5);
+
+            return new Game(
+                state: GameState.Started,
+                setup: setup,
+                turns: new Stack<Turn>(),
+                lickPile: deck,
+                discardPile: new Stack<CardId>(new []{ topCard }),
+                players: players,
+                playerQueue: new Queue<Player>(players)
+            );
+        }
     }
 }
