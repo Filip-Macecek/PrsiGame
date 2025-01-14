@@ -43,6 +43,15 @@ namespace PrsiGame.Types
 
         public Stack<Player> Winners { get; }
 
+        public void AddTurnUnsafe(Turn turn)
+        {
+            var addTurnResult = AddTurn(turn);
+            if (addTurnResult.IsFailed)
+            {
+                throw new InvalidOperationException(addTurnResult.Errors.First().Message);
+            }
+        }
+
         public Result AddTurn(Turn turn)
         {
             if (State != GameState.Started)
@@ -167,7 +176,7 @@ namespace PrsiGame.Types
             var turnsCopy = Turns.MakeCopy();
             var requiredLicks = (int?) null;
 
-            while (requiredLicks == null && turnsCopy.Count > 0)
+            while (turnsCopy.Count > 0)
             {
                 var turn = turnsCopy.Pop();
                 if (turn is SevenTurn sevenTurn)
@@ -181,6 +190,11 @@ namespace PrsiGame.Types
             }
 
             return requiredLicks;
+        }
+
+        public Player GetCurrentPlayer()
+        {
+            return PlayerQueue.Peek();
         }
 
         private void ApplyTurn(Turn turn)
