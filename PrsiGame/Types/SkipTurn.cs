@@ -14,7 +14,7 @@ namespace PrsiGame.Types
             return new SkipTurn(player);
         }
 
-        public Result Validate(Turn previousTurn)
+        public Result Validate(Turn previousTurn = null)
         {
             if (!(previousTurn is AceTurn))
             {

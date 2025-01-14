@@ -4,6 +4,7 @@ using PrsiGame.Types;
 
 namespace PrsiGame.UnitTests;
 
+// TODO Test for when there is no previous turns (ie. it's the first turn) and the turn need to touch the last turn (Skip, Lick).
 public class GameTypeTests
 {
     [Fact]

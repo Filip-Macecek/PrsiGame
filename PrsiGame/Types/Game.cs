@@ -64,10 +64,10 @@ namespace PrsiGame.Types
                         TopCardAppliesToCurrentTurn());
                     break;
                 case SkipTurn skipTurn:
-                    validationResult = skipTurn.Validate(Turns.Peek());
+                    validationResult = skipTurn.Validate(Turns.Count > 0 ? Turns.Peek() : null);
                     break;
                 case LickTurn lickTurn:
-                    validationResult = lickTurn.Validate(Turns.Peek().ToTurnType(), GetRequiredLicks());
+                    validationResult = lickTurn.Validate(Turns.Count > 0 ? Turns.Peek().ToTurnType() : (TurnType?)null, GetRequiredLicks());
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(turn));

@@ -11,7 +11,7 @@ namespace PrsiGame.Common
 
         public static CardColor ToColor(this CardId cardId)
         {
-            switch (((int)cardId / CardColorOffset))
+            switch ((int)cardId / CardColorOffset)
             {
                 case 0:
                     return CardColor.Hearts;

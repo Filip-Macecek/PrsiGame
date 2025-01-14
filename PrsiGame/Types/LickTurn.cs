@@ -18,9 +18,14 @@ namespace PrsiGame.Types
             return new LickTurn(player, lickCount);
         }
 
-        public Result Validate(TurnType lastTurn, int? requiredLickCount)
+        public Result Validate(TurnType? lastTurn, int? requiredLickCount)
         {
-            switch (lastTurn)
+            if (lastTurn == null)
+            {
+                return Result.Ok();
+            }
+
+            switch (lastTurn.Value)
             {
                 case TurnType.AceTurn:
                     return new InvalidTurnError("The player is currently stunned.");
