@@ -1,8 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame", "PrsiGame\PrsiGame.csproj", "{E10184D5-77C6-42EF-B159-799254B0B89C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame", "lib\PrsiGame\PrsiGame.csproj", "{E10184D5-77C6-42EF-B159-799254B0B89C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame.UnitTests", "PrsiGame.UnitTests\PrsiGame.UnitTests.csproj", "{26523956-04DB-47D9-A9F9-19D4D54ACDEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiGame.UnitTests", "lib\PrsiGame.UnitTests\PrsiGame.UnitTests.csproj", "{26523956-04DB-47D9-A9F9-19D4D54ACDEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrsiWeb", "web\PrsiWeb\PrsiWeb.csproj", "{F072CBBC-406B-4040-BD20-7E74A1A14351}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{DAEF02EF-6A67-4599-82CB-AA188E2E174B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "web", "web", "{711B5B1B-189D-420E-96C0-145A0922B97C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +24,14 @@ Global
 		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{26523956-04DB-47D9-A9F9-19D4D54ACDEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F072CBBC-406B-4040-BD20-7E74A1A14351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F072CBBC-406B-4040-BD20-7E74A1A14351}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F072CBBC-406B-4040-BD20-7E74A1A14351}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F072CBBC-406B-4040-BD20-7E74A1A14351}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E10184D5-77C6-42EF-B159-799254B0B89C} = {DAEF02EF-6A67-4599-82CB-AA188E2E174B}
+		{26523956-04DB-47D9-A9F9-19D4D54ACDEB} = {DAEF02EF-6A67-4599-82CB-AA188E2E174B}
+		{F072CBBC-406B-4040-BD20-7E74A1A14351} = {711B5B1B-189D-420E-96C0-145A0922B97C}
 	EndGlobalSection
 EndGlobal
