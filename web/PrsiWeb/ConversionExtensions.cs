@@ -10,8 +10,8 @@ public static class ConversionExtensions
         return new PlayerDto(player.Id, player.Name);
     }
 
-    public static SessionDto ToDto(this Session session)
+    public static SessionDto ToDto(this GameSession gameSession)
     {
-        return new SessionDto(session.Id, session.Players.Select(p => p.ToDto()), session.State);
+        return new SessionDto(gameSession.Id, gameSession.Players.Select(p => p.ToDto()), gameSession.State);
     }
 }

@@ -19,9 +19,9 @@ public class PlayerController : ControllerBase
     }
 
     [HttpPut()]
-    public PlayerDto Put([FromBody] NewPlayerDto newPlayerDto)
+    public PlayerDto Put([FromBody] ConnectPlayerDto connectPlayerDto)
     {
-        var player = new Player(Guid.NewGuid(), newPlayerDto.Name ?? "New Player");
+        var player = new Player(Guid.NewGuid(), connectPlayerDto.Name ?? "New Player");
         _persistenceService.Set(player);
         return new PlayerDto(player.Id, player.Name);
     }

@@ -13,15 +13,15 @@ using PrsiWeb.Services;
 namespace PrsiWeb.IntegrationTests;
 
 [TestFixture]
-public class SessionTests : TestBase
+public class GameSessionTests : TestBase
 {
-    private IPersistenceService _persistenceService;
+    private IGameSessionRepository _gameSessionRepository;
     private WebSocketClientService _webSocketClientService;
 
     [SetUp]
     public void Setup()
     {
-        _persistenceService = WebApplicationFactory.Services.GetRequiredService<IPersistenceService>();
+        _gameSessionRepository = WebApplicationFactory.Services.GetRequiredService<IGameSessionRepository>();
         _webSocketClientService = WebApplicationFactory.Services.GetRequiredService<WebSocketClientService>();
     }
 
@@ -30,9 +30,9 @@ public class SessionTests : TestBase
     public async Task Connect_WhenNotWebSocket_Fails()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        _persistenceService.Set(player);
-        var sessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(sessionId, [player], SessionState.Lobby));
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
+
         var newPlayer = new Player(Guid.NewGuid(), "Jana");
         var dto = new ConnectToSessionDto(newPlayer.Id, sessionId);
 
@@ -46,9 +46,8 @@ public class SessionTests : TestBase
     public async Task Connect_StateIsSent()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        _persistenceService.Set(player);
-        var sessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(sessionId, [player], SessionState.Lobby));
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
@@ -67,9 +66,8 @@ public class SessionTests : TestBase
     public async Task Connect_WhenPlayerIsSent_UpdatedStateIsSent()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        _persistenceService.Set(player);
-        var sessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(sessionId, [player], SessionState.Lobby));
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
@@ -80,7 +78,7 @@ public class SessionTests : TestBase
         // Ignore initial status.
         _ = await socket.ReceiveAsync(buffer, CancellationToken.None);
 
-        var newPlayerDto = new NewPlayerDto("Jana");
+        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
         var json = JsonSerializer.Serialize(newPlayerDto);
         await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, endOfMessage: true, CancellationToken.None);
 
@@ -98,9 +96,8 @@ public class SessionTests : TestBase
     public async Task Connect_WhenPlayerIsSent_AllConnectedClientsAreUpdated()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        _persistenceService.Set(player);
-        var sessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(sessionId, [player], SessionState.Lobby));
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
 
         var otherClient = Task.Run(async () =>
         {
@@ -126,7 +123,7 @@ public class SessionTests : TestBase
         // Ignore initial status.
         _ = await socket.ReceiveAsync(buffer, CancellationToken.None);
 
-        var newPlayerDto = new NewPlayerDto("Jana");
+        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
         var json = JsonSerializer.Serialize(newPlayerDto);
         await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, endOfMessage: true, CancellationToken.None);
 
@@ -147,12 +144,11 @@ public class SessionTests : TestBase
     public async Task Connect_WhenPlayerIsSent_AllConnectedOnlySubscribedToSessionIsUpdated()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        _persistenceService.Set(player);
-        var sessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(sessionId, [player], SessionState.Lobby));
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
 
-        var unrelatedSessionId = Guid.NewGuid();
-        _persistenceService.Set(new Session(unrelatedSessionId, [], SessionState.Lobby));
+        var unrelatedSession = _gameSessionRepository.CreateNew(player);
+        var unrelatedSessionId = unrelatedSession.Id;
 
         var otherClient = Task.Run(async () =>
         {
@@ -176,7 +172,7 @@ public class SessionTests : TestBase
 
         // Ignore initial status.
         _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-        var newPlayerDto = new NewPlayerDto("Jana");
+        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
         await socket.SendAsync(newPlayerDto, CancellationToken.None);
 
         var message = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
@@ -193,9 +189,9 @@ public class SessionTests : TestBase
     [Theory]
     public async Task Connect_WhenClientDisconnects_OtherClientStillReceivesUpdates(bool gracefulDisconnect)
     {
-        var sessionId = Guid.NewGuid();
-        var session = new Session(sessionId, [], SessionState.Lobby);
-        _persistenceService.Set(session);
+        var player = new Player(Guid.NewGuid(), "Filda");
+        var session = _gameSessionRepository.CreateNew(player);
+        var sessionId = session.Id;
 
         var otherClient = Task.Run(async () =>
         {

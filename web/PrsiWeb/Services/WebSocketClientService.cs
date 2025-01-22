@@ -14,15 +14,15 @@ public sealed class WebSocketClientService
         _clients = new Dictionary<Guid, List<JsonWebSocket>>();
     }
 
-    public void Add(Session session, JsonWebSocket webSocket)
+    public void Add(GameSession gameSession, JsonWebSocket webSocket)
     {
         lock (_clients)
         {
-            if (!_clients.ContainsKey(session.Id))
+            if (!_clients.ContainsKey(gameSession.Id))
             {
-                _clients.Add(session.Id, []);
+                _clients.Add(gameSession.Id, []);
             }
-            _clients[session.Id].Add(webSocket);
+            _clients[gameSession.Id].Add(webSocket);
         }
     }
 

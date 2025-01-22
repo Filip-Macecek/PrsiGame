@@ -13,7 +13,7 @@ public class PlayerTests : TestBase
     [Test]
     public async Task AddPlayer_WritesToMemoryCache()
     {
-        var dto = new NewPlayerDto(Name: "Filda");
+        var dto = new ConnectPlayerDto(Guid.NewGuid(), Name: "Filda");
 
         var client = WebApplicationFactory.CreateClient();
         var response = await client.PutAsync("player", new StringContent(JsonConvert.SerializeObject(dto), Encoding.UTF8, "application/json"));

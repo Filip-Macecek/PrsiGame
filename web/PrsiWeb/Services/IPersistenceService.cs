@@ -6,9 +6,9 @@ public interface IPersistenceService
 {
     public void Set(Player player);
 
-    public void Set(Session session);
+    public void Set(GameSession gameSession);
 
     Player? GetPlayer(Guid id);
 
-    Session? GetSession(Guid id);
+    GameSession? GetSession(Guid id);
 }

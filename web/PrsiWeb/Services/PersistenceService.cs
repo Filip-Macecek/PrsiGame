@@ -12,9 +12,9 @@ public sealed class PersistenceService : IPersistenceService
         _cache.Set(player.Id, player);
     }
 
-    public void Set(Session session)
+    public void Set(GameSession gameSession)
     {
-        _cache.Set(session.Id, session);
+        _cache.Set(gameSession.Id, gameSession);
     }
 
     public Player? GetPlayer(Guid id)
@@ -22,8 +22,8 @@ public sealed class PersistenceService : IPersistenceService
         return _cache.Get(id) as Player;
     }
 
-    public Session? GetSession(Guid id)
+    public GameSession? GetSession(Guid id)
     {
-        return _cache.Get(id) as Session;
+        return _cache.Get(id) as GameSession;
     }
 }

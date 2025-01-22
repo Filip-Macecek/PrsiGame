@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Caching.Memory;
 using PrsiWeb.Services;
 
 namespace PrsiWeb;
@@ -18,6 +19,8 @@ public class Program
         builder.Services.AddSwaggerGen();
         builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IPersistenceService>(new PersistenceService());
+        builder.Services.AddSingleton<IMemoryCache>(new MemoryCache(new MemoryCacheOptions()));
+        builder.Services.AddSingleton<IGameSessionRepository, InMemoryGameSessionRepository>();
         builder.Services.AddSingleton<WebSocketClientService>(new WebSocketClientService());
 
         var app = builder.Build();

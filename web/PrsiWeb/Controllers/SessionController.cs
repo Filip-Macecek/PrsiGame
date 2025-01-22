@@ -15,46 +15,17 @@ namespace PrsiWeb.Controllers;
 public class SessionController : ControllerBase
 {
     private readonly ILogger<SessionController> _logger;
-    private readonly IPersistenceService _persistenceService;
     private readonly WebSocketClientService _clientService;
+    private readonly IGameSessionRepository _gameSessionRepository;
 
     public SessionController(
         ILogger<SessionController> logger,
-        IPersistenceService persistenceService,
-        WebSocketClientService clientService)
+        WebSocketClientService clientService,
+        IGameSessionRepository gameSessionRepository)
     {
         _logger = logger;
-        _persistenceService = persistenceService;
         _clientService = clientService;
-    }
-
-    [HttpPut()]
-    public SessionDto Put([FromBody] NewSessionDto sessionDto)
-    {
-        var player = _persistenceService.GetPlayer(sessionDto.PlayerId);
-
-        if (player == null)
-        {
-            throw new InvalidOperationException($"Player '{sessionDto.PlayerId}' has not been found.");
-        }
-
-        var session = new Session(Guid.NewGuid(), [player], SessionState.Lobby);
-        _persistenceService.Set(session);
-
-        return session.ToDto();
-    }
-
-    [HttpGet()]
-    public SessionDto Get([FromQuery] Guid id)
-    {
-        var session = _persistenceService.GetSession(id);
-
-        if (session == null)
-        {
-            throw new InvalidOperationException($"Session '{id}' has not been found.");
-        }
-
-        return session.ToDto();
+        _gameSessionRepository = gameSessionRepository;
     }
 
     [HttpGet("connect")]
@@ -66,7 +37,7 @@ public class SessionController : ControllerBase
             return;
         }
 
-        var session = _persistenceService.GetSession(sessionId);
+        var session = _gameSessionRepository.Get(sessionId);
 
         if (session == null)
         {
@@ -84,14 +55,15 @@ public class SessionController : ControllerBase
 
         while (socket.State == WebSocketState.Open)
         {
-            var result = await socket.ReceiveAsync<NewPlayerDto>(ct);
+            var result = await socket.ReceiveAsync<ConnectPlayerDto>(ct);
 
             if (result != null)
             {
+                // TODO: Reconnect.
                 var player = new Player(Guid.NewGuid(), result!.Name ?? "New Player");
-                session.Players.Add(player);
+                var updatedSession = _gameSessionRepository.AddPlayer(sessionId, player);
 
-                var response = session.ToDto();
+                var response = updatedSession.ToDto();
                 _clientService.UpdateAll(response);
             }
         }
