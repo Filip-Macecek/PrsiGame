@@ -1,5 +1,4 @@
 using System.Net.WebSockets;
-using PrsiGame.WebSockets;
 using PrsiWeb.Entities;
 using PrsiWeb.Models;
 
@@ -7,14 +6,53 @@ namespace PrsiWeb.Services;
 
 public sealed class WebSocketClientService
 {
-    private readonly IDictionary<Guid, List<JsonWebSocket>> _clients;
+    private readonly ILogger _logger;
+    private readonly IDictionary<Guid, List<WebSocketClient>> _clients;
 
-    public WebSocketClientService()
+    public WebSocketClientService(ILogger<WebSocketClientService> logger)
     {
-        _clients = new Dictionary<Guid, List<JsonWebSocket>>();
+        _logger = logger;
+        _clients = new Dictionary<Guid, List<WebSocketClient>>();
     }
 
-    public void Add(GameSession gameSession, JsonWebSocket webSocket)
+    public void Remove(Guid sessionId, Guid playerId)
+    {
+        lock (_clients)
+        {
+            _clients.TryGetValue(sessionId, out var clients);
+            if (clients != null)
+            {
+                var clientsToDelete = clients.Where(s => s.PlayerId == playerId).ToList();
+                if (clientsToDelete.Any())
+                {
+                    foreach (var client in clientsToDelete)
+                    {
+                        client.WebSocket.Dispose();
+                        clients.Remove(client);
+                    }
+                }
+            }
+        }
+    }
+
+    public void Remove(Guid sessionId)
+    {
+        lock (_clients)
+        {
+            _clients.TryGetValue(sessionId, out var clients);
+            if (clients != null)
+            {
+                foreach (var client in clients)
+                {
+                    client.WebSocket.Dispose();
+                }
+
+                _clients.Remove(sessionId);
+            }
+        }
+    }
+
+    public void Add(GameSession gameSession, WebSocketClient client)
     {
         lock (_clients)
         {
@@ -22,7 +60,7 @@ public sealed class WebSocketClientService
             {
                 _clients.Add(gameSession.Id, []);
             }
-            _clients[gameSession.Id].Add(webSocket);
+            _clients[gameSession.Id].Add(client);
         }
     }
 
@@ -30,9 +68,12 @@ public sealed class WebSocketClientService
     {
         lock (_clients)
         {
-            foreach (var client in _clients[sessionDto.Id].Where(c => c.State == WebSocketState.Open))
+            var webSocketClients = _clients[sessionDto.Id].Where(c => c.WebSocket.State == WebSocketState.Open).ToList();
+            _logger.LogInformation($"Updating client ids: {webSocketClients.Select(c => c.Id.ToString())}");
+
+            foreach (var client in webSocketClients)
             {
-                client.SendAsync(sessionDto, CancellationToken.None).GetAwaiter().GetResult();
+                client.WebSocket.SendAsync(sessionDto, CancellationToken.None).GetAwaiter().GetResult();
             }
         }
     }

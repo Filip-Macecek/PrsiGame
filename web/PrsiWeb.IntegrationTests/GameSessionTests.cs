@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Extensions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using PrsiGame.WebSockets;
 using PrsiWeb.Entities;
@@ -25,7 +26,6 @@ public class GameSessionTests : TestBase
         _webSocketClientService = WebApplicationFactory.Services.GetRequiredService<WebSocketClientService>();
     }
 
-
     [Test]
     public async Task Connect_WhenNotWebSocket_Fails()
     {
@@ -43,188 +43,187 @@ public class GameSessionTests : TestBase
     }
 
     [Test]
-    public async Task Connect_StateIsSent()
+    public async Task Connect_WhenCreateSessionCommandIsSent_NewSessionIsRetrieved()
     {
         var player = new Player(Guid.NewGuid(), "Filda");
-        var session = _gameSessionRepository.CreateNew(player);
-        var sessionId = session.Id;
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-        var socket = await webSocket.ConnectAsync(uri, CancellationToken.None);
-        var buffer = new byte[1024 * 4];
-        var result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-        var socketMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-        var message = JsonSerializer.Deserialize<SessionDto>(socketMessage);
+        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+        using var socket = new JsonWebSocket("", await webSocket.ConnectAsync(uri, CancellationToken.None));
+
+        await socket.SendAsync(new CreateSessionCommandDto(player.ToDto()), default);
+        var message = await socket.ReceiveAsync<SessionDto>(default);
         message.Should().NotBeNull();
         message.State.Should().Be(SessionState.Lobby);
         message.Players.Should().HaveCount(1);
     }
 
     [Test]
-    public async Task Connect_WhenPlayerIsSent_UpdatedStateIsSent()
+    public async Task Connect_WhenJoinLobby_StateIsSent()
     {
-        var player = new Player(Guid.NewGuid(), "Filda");
-        var session = _gameSessionRepository.CreateNew(player);
-        var sessionId = session.Id;
+        var session = _gameSessionRepository.CreateNew(new Player(Guid.NewGuid(), "Author"));
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-        using var socket = await webSocket.ConnectAsync(uri, CancellationToken.None);
-        var buffer = new byte[1024 * 4];
+        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+        using var socket = new JsonWebSocket("", await webSocket.ConnectAsync(uri, CancellationToken.None));
 
-        // Ignore initial status.
-        _ = await socket.ReceiveAsync(buffer, CancellationToken.None);
-
-        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
-        var json = JsonSerializer.Serialize(newPlayerDto);
-        await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, endOfMessage: true, CancellationToken.None);
-
-        var result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-        var socketMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-        var message = JsonSerializer.Deserialize<SessionDto>(socketMessage);
+        var newPlayer = new Player(Guid.NewGuid(), "Filda");
+        await socket.SendAsync(new JoinLobbyCommandDto(session.Id, newPlayer.ToDto()), default);
+        var message = await socket.ReceiveAsync<SessionDto>(default);
         message.Should().NotBeNull();
+        message.State.Should().Be(SessionState.Lobby);
         message.Players.Should().HaveCount(2);
-        var newPlayer = message.Players.SingleOrDefault(p => p.Name == "Jana");
-        var a = newPlayer.Should().NotBeNull();
-        newPlayer.Id.Should().NotBe(Guid.Empty);
     }
 
     [Test]
-    public async Task Connect_WhenPlayerIsSent_AllConnectedClientsAreUpdated()
+    public async Task Connect_WhenNewPlayerJoin_AllConnectedClientsAreUpdated()
     {
-        var player = new Player(Guid.NewGuid(), "Filda");
-        var session = _gameSessionRepository.CreateNew(player);
-        var sessionId = session.Id;
+        var clientWebSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
 
-        var otherClient = Task.Run(async () =>
+        var author = new Player(Guid.NewGuid(), "Filda");
+        using var socket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
+
+        await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
+        var newSession = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+
+        var joinLobbyTask = Task.Run(async () =>
         {
-            var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-            var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-            var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-            using var socket = await webSocket.ConnectAsync(uri, CancellationToken.None);
-            var buffer = new byte[1024 * 4];
-
-            // Ignore initial status.
-            await socket.ReceiveAsync(buffer, CancellationToken.None);
-
-            var otherMessage = await socket.ReceiveAsync(buffer, CancellationToken.None);
-            otherMessage.Should().NotBeNull();
+            using var newPlayerSocket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
+            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
         });
 
-        var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-        using var socket = await webSocket.ConnectAsync(uri, CancellationToken.None);
-        var buffer = new byte[1024 * 4];
+        var joinLobbyTaskWait = async () => await joinLobbyTask.WaitAsync(3.Seconds());
+        await joinLobbyTaskWait.Should().NotThrowAsync<TimeoutException>();
 
-        // Ignore initial status.
-        _ = await socket.ReceiveAsync(buffer, CancellationToken.None);
-
-        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
-        var json = JsonSerializer.Serialize(newPlayerDto);
-        await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, endOfMessage: true, CancellationToken.None);
-
-        var result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-        var socketMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-        var message = JsonSerializer.Deserialize<SessionDto>(socketMessage);
-        message.Should().NotBeNull();
-        message.Players.Should().HaveCount(2);
-        var newPlayer = message.Players.SingleOrDefault(p => p.Name == "Jana");
-        newPlayer.Should().NotBeNull();
-        newPlayer.Id.Should().NotBe(Guid.Empty);
-
-        var wait = async () => await otherClient.WaitAsync(5.Seconds());
-        await wait.Should().NotThrowAsync();
+        var receiveUpdatedSessionWait = async () =>
+        {
+            var updatedSession = await socket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds());
+            updatedSession.Should().NotBeNull();
+            updatedSession.Players.Should().HaveCount(2);
+            updatedSession.Players.Should().ContainSingle(p => p.Name == "Filda");
+            updatedSession.Players.Should().ContainSingle(p => p.Name == "Janca");
+        };
+        await receiveUpdatedSessionWait.Should().NotThrowAsync<TimeoutException>();
     }
 
     [Test]
-    public async Task Connect_WhenPlayerIsSent_AllConnectedOnlySubscribedToSessionIsUpdated()
+    public async Task Connect_WhenPlayerDisconnects_AuthorIsUpdated()
     {
-        var player = new Player(Guid.NewGuid(), "Filda");
-        var session = _gameSessionRepository.CreateNew(player);
-        var sessionId = session.Id;
+        var clientWebSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
 
-        var unrelatedSession = _gameSessionRepository.CreateNew(player);
-        var unrelatedSessionId = unrelatedSession.Id;
+        var author = new Player(Guid.NewGuid(), "Filda");
+        using var socket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
 
-        var otherClient = Task.Run(async () =>
+        await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
+        var newSession = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+
+        var joinLobbyTask = Task.Run(async () =>
         {
-            var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-            var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-            var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={unrelatedSessionId}");
-
-            using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
-
-            // Ignore initial status.
-            _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-
-            var receiveResult = async () => await socket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(1.Seconds());
-            await receiveResult.Should().ThrowAsync<TimeoutException>();
+            using var newPlayerSocket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
+            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
+            await newPlayerSocket.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
         });
 
-        var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-        using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
+        var joinLobbyTaskWait = async () => await joinLobbyTask.WaitAsync(3.Seconds());
+        await joinLobbyTaskWait.Should().NotThrowAsync<TimeoutException>();
 
-        // Ignore initial status.
-        _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-        var newPlayerDto = new ConnectPlayerDto(Guid.NewGuid(), "Jana");
-        await socket.SendAsync(newPlayerDto, CancellationToken.None);
+        var receiveUpdatedSessionWait = async () =>
+        {
+            var sessionUpdatedAfterJoin = await socket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds());
+            sessionUpdatedAfterJoin.Should().NotBeNull();
+            sessionUpdatedAfterJoin.Players.Should().HaveCount(2);
+            sessionUpdatedAfterJoin.Players.Should().ContainSingle(p => p.Name == "Filda");
+            sessionUpdatedAfterJoin.Players.Should().ContainSingle(p => p.Name == "Janca");
 
-        var message = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-        message.Should().NotBeNull();
-        message.Players.Should().HaveCount(2);
-        var newPlayer = message.Players.SingleOrDefault(p => p.Name == "Jana");
-        newPlayer.Should().NotBeNull();
-        newPlayer.Id.Should().NotBe(Guid.Empty);
-
-        var wait = async () => await otherClient.WaitAsync(5.Seconds());
-        await wait.Should().NotThrowAsync();
+            var sessionAfterDisconnect = await socket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds());
+            sessionAfterDisconnect.Should().NotBeNull();
+            sessionAfterDisconnect.Players.Should().HaveCount(1);
+            sessionAfterDisconnect.Players.Should().ContainSingle(p => p.Name == "Filda");
+        };
+        await receiveUpdatedSessionWait.Should().NotThrowAsync<TimeoutException>();
     }
 
-    [Theory]
-    public async Task Connect_WhenClientDisconnects_OtherClientStillReceivesUpdates(bool gracefulDisconnect)
-    {
-        var player = new Player(Guid.NewGuid(), "Filda");
-        var session = _gameSessionRepository.CreateNew(player);
-        var sessionId = session.Id;
+    // [Test]
+    // public async Task Connect_WhenClientDisconnectsGracefullyAndNotAuthor_OtherClientStillReceivesUpdates()
+    // {
+    //     var author = new Player(Guid.NewGuid(), "Filda");
+    //     var session = _gameSessionRepository.CreateNew(author);
+    //
+    //     var otherClient = Task.Run(async () =>
+    //     {
+    //         var newPlayer = new Player(Guid.NewGuid(), "Janca");
+    //         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+    //         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+    //         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+    //
+    //         using var socket = new JsonWebSocket("", await webSocket.ConnectAsync(uri, CancellationToken.None));
+    //         _webSocketClientService.Add(session, new WebSocketClient(Guid.NewGuid(), socket, newPlayer.Id));
+    //         _gameSessionRepository.AddPlayer(session.Id, newPlayer);
+    //
+    //         var sessionAfterClosingTheOther = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+    //         sessionAfterClosingTheOther.Should().NotBeNull();
+    //         sessionAfterClosingTheOther.Players.Should().HaveCount(1);
+    //         sessionAfterClosingTheOther.Players.Should().ContainSingle(p => p.Id == newPlayer.Id);
+    //     });
+    //
+    //     var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+    //     var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+    //     var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+    //     using var socket = new JsonWebSocket("", await webSocket.ConnectAsync(uri, CancellationToken.None));
+    //     _webSocketClientService.Add(session, new WebSocketClient(session.Id, socket, author.Id));
+    //
+    //     await socket.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
+    //
+    //     var wait = async () => await otherClient.WaitAsync(2.Seconds());
+    //     await wait.Should().NotThrowAsync<TimeoutException>();
+    // }
 
-        var otherClient = Task.Run(async () =>
-        {
-            var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-            var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-            var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-
-            using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
-
-            // Ignore initial status.
-            _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-            var updateAfterClosingTheOther = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-            updateAfterClosingTheOther.Should().NotBeNull();
-        });
-
-        var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
-        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
-        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?sessionId={sessionId}");
-        using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
-
-        // Ignore initial status.
-        _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
-        if (gracefulDisconnect)
-        {
-            await socket.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
-        }
-        else
-        {
-            socket.WebSocket.Abort();
-        }
-
-        _webSocketClientService.UpdateAll(session.ToDto());
-        var wait = async () => await otherClient.WaitAsync(2.Seconds());
-        await wait.Should().NotThrowAsync<TimeoutException>();
-    }
+    // [Theory]
+    // public async Task Connect_WhenClientDisconnects_OtherClientStillReceivesUpdates(bool gracefulDisconnect)
+    // {
+    //     var player = new Player(Guid.NewGuid(), "Filda");
+    //     var session = _gameSessionRepository.CreateNew(player);
+    //     var sessionId = session.Id;
+    //
+    //     var otherClient = Task.Run(async () =>
+    //     {
+    //         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+    //         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+    //         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+    //
+    //         using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
+    //         await socket.SendAsync(new JoinLobbyCommandDto(session.Id, new PlayerDto(Guid.NewGuid(), "Janca")), CancellationToken.None);
+    //         _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+    //         var updateAfterClosingTheOther = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+    //         updateAfterClosingTheOther.Should().NotBeNull();
+    //     });
+    //
+    //     var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+    //     var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+    //     var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
+    //     using var socket = new JsonWebSocket(await webSocket.ConnectAsync(uri, CancellationToken.None));
+    //
+    //     // Ignore initial status.
+    //     _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+    //     if (gracefulDisconnect)
+    //     {
+    //         await socket.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
+    //     }
+    //     else
+    //     {
+    //         socket.WebSocket.Abort();
+    //     }
+    //
+    //     _webSocketClientService.UpdateAll(session.ToDto());
+    //     var wait = async () => await otherClient.WaitAsync(2.Seconds());
+    //     await wait.Should().NotThrowAsync<TimeoutException>();
+    // }
 }

@@ -1,46 +1,107 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace PrsiGame.WebSockets;
 
 public sealed class JsonWebSocket : IDisposable
 {
+    private readonly string _name;
+    private readonly Action<string>? _log;
     private const int BufferSize = 1024 * 4;
 
-    public JsonWebSocket(WebSocket webSocket)
+    // TODO: This should not take precedence over the options setup in the Program.cs
+    private static JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
     {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public JsonWebSocket(string name, WebSocket webSocket, Action<string>? log = null)
+    {
+        _name = name;
+        _log = log;
+        Id = Guid.NewGuid();
         WebSocket = webSocket;
     }
 
+    public Guid Id { get; private set; }
+
     public WebSocketState State => WebSocket.State;
+
     public WebSocket WebSocket { get; private set; }
 
     public async Task SendAsync<T>(T dto, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(dto);
+        var json = JsonSerializer.Serialize(dto, JsonSerializerOptions);
         var utf8 = Encoding.UTF8.GetBytes(json);
+        var l = $"{_name}: Sending {Encoding.UTF8.GetString(utf8)}";
+        Console.WriteLine(l);
+        if (_log != null)
+        {
+            _log(l);
+        }
 
         try
         {
             await WebSocket.SendAsync(utf8, WebSocketMessageType.Text, true, cancellationToken);
         }
-        catch (IOException)
+        catch (IOException e)
         {
+            Console.WriteLine(e);
+            if (_log != null)
+            {
+                _log(e.ToString());
+            }
             Dispose();
+        }
+        Console.WriteLine($"{_name}: Sending done.");
+        if (_log != null)
+        {
+            _log($"{_name}: Sending done.");
         }
     }
 
     public async Task<T?> ReceiveAsync<T>(CancellationToken cancellationToken) where T : class
     {
+        var bytes = await ReceiveInternalAsync(cancellationToken);
+
+        var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+        return JsonSerializer.Deserialize<T>(socketMessage, JsonSerializerOptions);
+    }
+
+    public async Task<JsonDocument?> ReceiveJsonAsync(CancellationToken cancellationToken)
+    {
+        var bytes = await ReceiveInternalAsync(cancellationToken);
+
+        if (bytes is not null)
+        {
+            var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+            return JsonDocument.Parse(socketMessage);
+        }
+        else return null;
+    }
+
+    // TODO: this definitely does not belong here.
+    public T? Convert<T>(JsonDocument doc) where T : class
+    {
+        return doc.Deserialize<T>(JsonSerializerOptions);
+    }
+
+    private async Task<List<byte>?> ReceiveInternalAsync(CancellationToken cancellationToken)
+    {
+        var l = $"{_name} receiving.";
+        Console.WriteLine(l);
+        if (_log != null)
+        {
+            _log(l);
+        }
         if (WebSocket.CloseStatus != null)
         {
             return null;
         }
 
-        var bytes = new List<byte>();
         var buffer = new byte[BufferSize];
-
         WebSocketReceiveResult result;
         try
         {
@@ -60,15 +121,22 @@ public sealed class JsonWebSocket : IDisposable
             return null;
         }
 
+        var bytes = new List<byte>();
+
         while (!result.EndOfMessage)
         {
             bytes.AddRange(buffer[..result.Count]);
             result = await WebSocket.ReceiveAsync(buffer, cancellationToken);
         }
         bytes.AddRange(buffer[..result.Count]);
+        var l2 = $"{_name} received {Encoding.UTF8.GetString(bytes.ToArray())}.";
+        Console.WriteLine(l);
+        if (_log != null)
+        {
+            _log(l2);
+        }
 
-        var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, result.Count);
-        return JsonSerializer.Deserialize<T>(socketMessage);
+        return bytes;
     }
 
     public void Dispose()

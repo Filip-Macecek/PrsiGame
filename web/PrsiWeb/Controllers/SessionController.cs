@@ -1,10 +1,8 @@
-using System.Buffers;
+using MediatR;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using PrsiGame.WebSockets;
-using PrsiWeb.Entities;
 using PrsiWeb.Models;
 using PrsiWeb.Services;
 
@@ -17,54 +15,74 @@ public class SessionController : ControllerBase
     private readonly ILogger<SessionController> _logger;
     private readonly WebSocketClientService _clientService;
     private readonly IGameSessionRepository _gameSessionRepository;
+    private readonly IMediator _mediator;
 
     public SessionController(
         ILogger<SessionController> logger,
         WebSocketClientService clientService,
-        IGameSessionRepository gameSessionRepository)
+        IGameSessionRepository gameSessionRepository,
+        IMediator mediator)
     {
         _logger = logger;
         _clientService = clientService;
         _gameSessionRepository = gameSessionRepository;
+        _mediator = mediator;
     }
 
     [HttpGet("connect")]
-    public async Task Connect(Guid sessionId, CancellationToken ct)
+    public async Task Connect(string? id, CancellationToken ct)
     {
-        if (!HttpContext.WebSockets.IsWebSocketRequest || sessionId == Guid.Empty)
+        if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
             HttpContext.Response.StatusCode = 400;
             return;
         }
 
-        var session = _gameSessionRepository.Get(sessionId);
-
-        if (session == null)
-        {
-            throw new InvalidOperationException($"Session '{sessionId}' has not been found.");
-        }
-
-        using var socket = new JsonWebSocket(await HttpContext.WebSockets.AcceptWebSocketAsync());
-        _clientService.Add(session, socket);
-
-        if (socket.State == WebSocketState.Open)
-        {
-            var sessionDto = session.ToDto();
-            await socket.SendAsync(sessionDto, ct);
-        }
+        using var socket = new JsonWebSocket($"({id ?? ""}) Connect endpoint", await HttpContext.WebSockets.AcceptWebSocketAsync(), s => _logger.LogInformation(s));
 
         while (socket.State == WebSocketState.Open)
         {
-            var result = await socket.ReceiveAsync<ConnectPlayerDto>(ct);
-
-            if (result != null)
+            JsonDocument? json = null;
+            if (id != "receive_task")
             {
-                // TODO: Reconnect.
-                var player = new Player(Guid.NewGuid(), result!.Name ?? "New Player");
-                var updatedSession = _gameSessionRepository.AddPlayer(sessionId, player);
+                json = await socket.ReceiveJsonAsync(ct);
+            }
+            else
+            {
+                Thread.Sleep(9000000);
+            }
 
-                var response = updatedSession.ToDto();
-                _clientService.UpdateAll(response);
+            if (json == null) continue; // TODO
+            try
+            {
+                if (!json.RootElement.TryGetProperty("PrsiCommandType", out _))
+                {
+                    continue;
+                }
+
+                var commandType = json.RootElement.GetProperty("PrsiCommandType").GetString();
+                if (!Enum.TryParse<PrsiCommandType>(commandType, ignoreCase: true, out var prsiCommandType))
+                {
+                    throw new InvalidOperationException("Unknown command type.");
+                }
+
+                object command = prsiCommandType switch
+                {
+                    PrsiCommandType.CreateSession => socket.Convert<CreateSessionCommandDto>(json)!.ToCommand(socket),
+                    PrsiCommandType.JoinLobby => socket.Convert<JoinLobbyCommandDto>(json)!.ToCommand(socket),
+                    PrsiCommandType.StartGame => throw new NotImplementedException(),
+                    PrsiCommandType.AddTurn => throw new NotImplementedException(),
+                    PrsiCommandType.Disconnect => throw new NotImplementedException(),
+                    PrsiCommandType.Healthcheck => throw new NotImplementedException(),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+
+                await _mediator.Send(command!, ct);
+            }
+            catch (Exception e)
+            {
+                // TODO: Send error.
+                break;
             }
         }
     }

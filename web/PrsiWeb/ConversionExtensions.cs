@@ -1,3 +1,5 @@
+using PrsiGame.WebSockets;
+using PrsiWeb.Commands;
 using PrsiWeb.Entities;
 using PrsiWeb.Models;
 
@@ -13,5 +15,15 @@ public static class ConversionExtensions
     public static SessionDto ToDto(this GameSession gameSession)
     {
         return new SessionDto(gameSession.Id, gameSession.Players.Select(p => p.ToDto()), gameSession.State);
+    }
+
+    public static CreateSessionCommand ToCommand(this CreateSessionCommandDto commandDto, JsonWebSocket socket)
+    {
+        return new CreateSessionCommand(socket, commandDto.Author);
+    }
+
+    public static JoinLobbyCommand ToCommand(this JoinLobbyCommandDto commandDto, JsonWebSocket socket)
+    {
+        return new JoinLobbyCommand(socket, commandDto.SessionId, new Player(commandDto.Player.Id, commandDto.Player.Name));
     }
 }

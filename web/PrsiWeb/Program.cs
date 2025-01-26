@@ -18,10 +18,11 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        builder.Services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(Program).Assembly));
         builder.Services.AddSingleton<IPersistenceService>(new PersistenceService());
         builder.Services.AddSingleton<IMemoryCache>(new MemoryCache(new MemoryCacheOptions()));
         builder.Services.AddSingleton<IGameSessionRepository, InMemoryGameSessionRepository>();
-        builder.Services.AddSingleton<WebSocketClientService>(new WebSocketClientService());
+        builder.Services.AddSingleton<WebSocketClientService>();
 
         var app = builder.Build();
 

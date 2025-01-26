@@ -8,9 +8,9 @@ public interface IGameSessionRepository
 
     public GameSession CreateNew(Player author);
 
-    public GameSession AddPlayer(Guid sessionId, Player player);
+    public GameSession? AddPlayer(Guid sessionId, Player player);
 
-    public GameSession RemovePlayer(Guid sessionId, Player player);
+    public GameSession RemovePlayer(Guid sessionId, Guid playerId);
 
     public GameSession Start(Guid sessionId);
 

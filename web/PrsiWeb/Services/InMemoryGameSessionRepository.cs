@@ -23,7 +23,7 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
         return _cache.Set(session.Id, session);
     }
 
-    public GameSession AddPlayer(Guid sessionId, Player player)
+    public GameSession? AddPlayer(Guid sessionId, Player player)
     {
         lock (_cache)
         {
@@ -42,7 +42,7 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
         }
     }
 
-    public GameSession RemovePlayer(Guid sessionId, Player player)
+    public GameSession RemovePlayer(Guid sessionId, Guid playerId)
     {
         lock (_cache)
         {
@@ -55,7 +55,7 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
             var newSession = session with
             {
                 // TODO: Will the except work?
-                Players = [..session.Players.Except([player]).ToList()]
+                Players = [..session.Players.Where(p => p.Id != playerId).ToList()]
             };
             _cache.Set(session.Id, newSession);
             return newSession;
