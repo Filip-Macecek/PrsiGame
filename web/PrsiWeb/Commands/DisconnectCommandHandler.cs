@@ -18,8 +18,8 @@ public sealed class DisconnectCommandHandler : IRequestHandler<DisconnectCommand
 
     public Task Handle(DisconnectCommand request, CancellationToken cancellationToken)
     {
-        var session = _gameSessionRepository.RemovePlayer(request.SessionId, request.Player.Id);
-        if (session.Author.Id == request.Player.Id)
+        var session = _gameSessionRepository.RemovePlayer(request.SessionId, request.PlayerId);
+        if (session.Author.Id == request.PlayerId)
         {
             _gameSessionRepository.End(session.Id);
             _webSocketClientService.UpdateAll(session.ToDto());
@@ -28,7 +28,7 @@ public sealed class DisconnectCommandHandler : IRequestHandler<DisconnectCommand
         else
         {
             _webSocketClientService.UpdateAll(session.ToDto());
-            _webSocketClientService.Remove(request.SessionId, request.Player.Id);
+            _webSocketClientService.Remove(request.SessionId, request.PlayerId);
         }
 
         return Task.CompletedTask;

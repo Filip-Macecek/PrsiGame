@@ -15,6 +15,17 @@ public sealed class WebSocketClientService
         _clients = new Dictionary<Guid, List<WebSocketClient>>();
     }
 
+    public WebSocketClient? GetClient(WebSocket webSocket)
+    {
+        lock (_clients)
+        {
+            var client = _clients.Values
+                .Select(clients => clients.SingleOrDefault(c => c.WebSocket.WebSocket == webSocket))
+                .Where(c => c is not null);
+            return client.SingleOrDefault();
+        }
+    }
+
     public void Remove(Guid sessionId, Guid playerId)
     {
         lock (_clients)

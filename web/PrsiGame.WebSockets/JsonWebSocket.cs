@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FluentResults;
 
 namespace PrsiGame.WebSockets;
 
@@ -62,24 +63,40 @@ public sealed class JsonWebSocket : IDisposable
         }
     }
 
-    public async Task<T?> ReceiveAsync<T>(CancellationToken cancellationToken) where T : class
+    public async Task<Result<T?>> ReceiveAsync<T>(CancellationToken cancellationToken) where T : class
     {
-        var bytes = await ReceiveInternalAsync(cancellationToken);
+        var receiveResult = await ReceiveInternalAsync(cancellationToken);
 
-        var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
-        return JsonSerializer.Deserialize<T>(socketMessage, JsonSerializerOptions);
+        return receiveResult.Bind(bytes =>
+        {
+            try
+            {
+                var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+                return Result.Ok(JsonSerializer.Deserialize<T>(socketMessage, JsonSerializerOptions));
+            }
+            catch (Exception e)
+            {
+                return new ParsingCommandError();
+            }
+        });
     }
 
-    public async Task<JsonDocument?> ReceiveJsonAsync(CancellationToken cancellationToken)
+    public async Task<Result<JsonDocument>> ReceiveJsonAsync(CancellationToken cancellationToken)
     {
-        var bytes = await ReceiveInternalAsync(cancellationToken);
+        var receiveResult = await ReceiveInternalAsync(cancellationToken);
 
-        if (bytes is not null)
+        return receiveResult.Bind(bytes =>
         {
-            var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
-            return JsonDocument.Parse(socketMessage);
-        }
-        else return null;
+            try
+            {
+                var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+                return Result.Ok(JsonDocument.Parse(socketMessage));
+            }
+            catch (Exception e)
+            {
+                return new ParsingCommandError();
+            }
+        });
     }
 
     // TODO: this definitely does not belong here.
@@ -88,7 +105,7 @@ public sealed class JsonWebSocket : IDisposable
         return doc.Deserialize<T>(JsonSerializerOptions);
     }
 
-    private async Task<List<byte>?> ReceiveInternalAsync(CancellationToken cancellationToken)
+    private async Task<Result<List<byte>>> ReceiveInternalAsync(CancellationToken cancellationToken)
     {
         var l = $"{_name} receiving.";
         Console.WriteLine(l);
@@ -98,7 +115,7 @@ public sealed class JsonWebSocket : IDisposable
         }
         if (WebSocket.CloseStatus != null)
         {
-            return null;
+            return new WebSocketClosedError();
         }
 
         var buffer = new byte[BufferSize];
@@ -111,14 +128,14 @@ public sealed class JsonWebSocket : IDisposable
         {
             // await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Close", cancellationToken);
             Dispose();
-            return null;
+            return new WebSocketUnrecoverableError();
         }
 
         if (result.CloseStatus != null)
         {
             await WebSocket.CloseOutputAsync(result.CloseStatus.Value, "Close", cancellationToken);
             Dispose();
-            return null;
+            return new WebSocketClosedError();
         }
 
         var bytes = new List<byte>();
