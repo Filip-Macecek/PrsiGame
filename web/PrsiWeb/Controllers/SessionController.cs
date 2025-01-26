@@ -1,6 +1,5 @@
 using MediatR;
 using System.Net.WebSockets;
-using System.Text.Json;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using PrsiGame.WebSockets;
@@ -41,11 +40,10 @@ public class SessionController : ControllerBase
 
         while (socket.State == WebSocketState.Open)
         {
-            var oneSecond = new TimeSpan(0, 0, 0, 1);
-
-            Result<JsonDocument> jsonResult;
+            Result<IDictionary<string, object>> jsonResult;
             try
             {
+                var oneSecond = new TimeSpan(0, 0, 0, 1);
                 jsonResult = await socket.ReceiveJsonAsync(ct).WaitAsync(oneSecond, ct);
             }
             catch (TimeoutException)
@@ -70,7 +68,7 @@ public class SessionController : ControllerBase
         }
     }
 
-    private object? GetCommand(Result<JsonDocument> jsonResult, JsonWebSocket socket)
+    private object? GetCommand(Result<IDictionary<string, object>> jsonResult, JsonWebSocket socket)
     {
         if (jsonResult.HasError(e => e is WebSocketClosedError))
         {
@@ -83,12 +81,12 @@ public class SessionController : ControllerBase
         }
 
         var json = jsonResult.Value;
-        if (!json.RootElement.TryGetProperty("PrsiCommandType", out _))
+        if (!json.TryGetValue("PrsiCommandType", out var value))
         {
             return null;
         }
 
-        var commandType = json.RootElement.GetProperty("PrsiCommandType").GetString();
+        var commandType = value.ToString();
         if (!Enum.TryParse<PrsiCommandType>(commandType, ignoreCase: true, out var prsiCommandType))
         {
             throw new InvalidOperationException("Unknown command type.");

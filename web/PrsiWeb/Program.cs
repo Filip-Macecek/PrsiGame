@@ -17,7 +17,6 @@ public class Program
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(Program).Assembly));
         builder.Services.AddSingleton<IPersistenceService>(new PersistenceService());
         builder.Services.AddSingleton<IMemoryCache>(new MemoryCache(new MemoryCacheOptions()));

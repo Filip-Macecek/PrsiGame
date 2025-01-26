@@ -1,163 +1,168 @@
-﻿using System.Net.WebSockets;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentResults;
+using Newtonsoft.Json;
 
-namespace PrsiGame.WebSockets;
-
-public sealed class JsonWebSocket : IDisposable
+namespace PrsiGame.WebSockets
 {
-    private readonly string _name;
-    private readonly Action<string>? _log;
-    private const int BufferSize = 1024 * 4;
-
-    // TODO: This should not take precedence over the options setup in the Program.cs
-    private static JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+    public sealed class JsonWebSocket : IDisposable
     {
-        Converters = { new JsonStringEnumConverter() }
-    };
+        private readonly string _name;
+        private readonly Action<string> _log;
+        private const int BufferSize = 1024 * 4;
 
-    public JsonWebSocket(string name, WebSocket webSocket, Action<string>? log = null)
-    {
-        _name = name;
-        _log = log;
-        Id = Guid.NewGuid();
-        WebSocket = webSocket;
-    }
-
-    public Guid Id { get; private set; }
-
-    public WebSocketState State => WebSocket.State;
-
-    public WebSocket WebSocket { get; private set; }
-
-    public async Task SendAsync<T>(T dto, CancellationToken cancellationToken)
-    {
-        var json = JsonSerializer.Serialize(dto, JsonSerializerOptions);
-        var utf8 = Encoding.UTF8.GetBytes(json);
-        var l = $"{_name}: Sending {Encoding.UTF8.GetString(utf8)}";
-        Console.WriteLine(l);
-        if (_log != null)
+        public JsonWebSocket(string name, WebSocket webSocket, Action<string> log = null)
         {
-            _log(l);
+            _name = name;
+            _log = log;
+            Id = Guid.NewGuid();
+            WebSocket = webSocket;
         }
 
-        try
+        public Guid Id { get; private set; }
+
+        public WebSocketState State => WebSocket.State;
+
+        public WebSocket WebSocket { get; private set; }
+
+        public async Task SendAsync<T>(T dto, CancellationToken cancellationToken)
         {
-            await WebSocket.SendAsync(utf8, WebSocketMessageType.Text, true, cancellationToken);
-        }
-        catch (IOException e)
-        {
-            Console.WriteLine(e);
+            var json = JsonConvert.SerializeObject(dto, Formatting.None);
+            var utf8 = Encoding.UTF8.GetBytes(json);
+            var l = $"{_name}: Sending {Encoding.UTF8.GetString(utf8)}";
+            Console.WriteLine(l);
             if (_log != null)
             {
-                _log(e.ToString());
+                _log(l);
             }
-            Dispose();
-        }
-        Console.WriteLine($"{_name}: Sending done.");
-        if (_log != null)
-        {
-            _log($"{_name}: Sending done.");
-        }
-    }
 
-    public async Task<Result<T?>> ReceiveAsync<T>(CancellationToken cancellationToken) where T : class
-    {
-        var receiveResult = await ReceiveInternalAsync(cancellationToken);
-
-        return receiveResult.Bind(bytes =>
-        {
             try
             {
-                var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
-                return Result.Ok(JsonSerializer.Deserialize<T>(socketMessage, JsonSerializerOptions));
+                await WebSocket.SendAsync(new ArraySegment<byte>(utf8), WebSocketMessageType.Text, true, cancellationToken);
             }
-            catch (Exception e)
+            catch (IOException e)
             {
-                return new ParsingCommandError();
+                Console.WriteLine(e);
+                if (_log != null)
+                {
+                    _log(e.ToString());
+                }
+
+                Dispose();
             }
-        });
-    }
 
-    public async Task<Result<JsonDocument>> ReceiveJsonAsync(CancellationToken cancellationToken)
-    {
-        var receiveResult = await ReceiveInternalAsync(cancellationToken);
+            Console.WriteLine($"{_name}: Sending done.");
+            if (_log != null)
+            {
+                _log($"{_name}: Sending done.");
+            }
+        }
 
-        return receiveResult.Bind(bytes =>
+        public async Task<Result<T>> ReceiveAsync<T>(CancellationToken cancellationToken) where T : class
         {
+            var receiveResult = await ReceiveInternalAsync(cancellationToken);
+
+            return receiveResult.Bind(bytes =>
+            {
+                try
+                {
+                    var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+                    return Result.Ok(JsonConvert.DeserializeObject<T>(socketMessage));
+                }
+                catch (Exception e)
+                {
+                    return new ParsingCommandError();
+                }
+            });
+        }
+
+        public async Task<Result<IDictionary<string, object>>> ReceiveJsonAsync(CancellationToken cancellationToken)
+        {
+            var receiveResult = await ReceiveInternalAsync(cancellationToken);
+
+            return receiveResult.Bind(bytes =>
+            {
+                try
+                {
+                    var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+                    return Result.Ok(JsonConvert.DeserializeObject<IDictionary<string, object>>(socketMessage));
+                }
+                catch (Exception e)
+                {
+                    return new ParsingCommandError();
+                }
+            });
+        }
+
+        // TODO: this definitely does not belong here.
+        public T Convert<T>(object doc) where T : class
+        {
+            var json = JsonConvert.SerializeObject(doc);
+            return JsonConvert.DeserializeObject<T>(json);
+        }
+
+        private async Task<Result<List<byte>>> ReceiveInternalAsync(CancellationToken cancellationToken)
+        {
+            var l = $"{_name} receiving.";
+            Console.WriteLine(l);
+            if (_log != null)
+            {
+                _log(l);
+            }
+
+            if (WebSocket.CloseStatus != null)
+            {
+                return new WebSocketClosedError();
+            }
+
+            var buffer = new byte[BufferSize];
+            WebSocketReceiveResult result;
             try
             {
-                var socketMessage = Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
-                return Result.Ok(JsonDocument.Parse(socketMessage));
+                result = await WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
             }
-            catch (Exception e)
+            catch (IOException ex)
             {
-                return new ParsingCommandError();
+                // await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Close", cancellationToken);
+                Dispose();
+                return new WebSocketUnrecoverableError();
             }
-        });
-    }
 
-    // TODO: this definitely does not belong here.
-    public T? Convert<T>(JsonDocument doc) where T : class
-    {
-        return doc.Deserialize<T>(JsonSerializerOptions);
-    }
+            if (result.CloseStatus != null)
+            {
+                await WebSocket.CloseOutputAsync(result.CloseStatus.Value, "Close", cancellationToken);
+                Dispose();
+                return new WebSocketClosedError();
+            }
 
-    private async Task<Result<List<byte>>> ReceiveInternalAsync(CancellationToken cancellationToken)
-    {
-        var l = $"{_name} receiving.";
-        Console.WriteLine(l);
-        if (_log != null)
-        {
-            _log(l);
-        }
-        if (WebSocket.CloseStatus != null)
-        {
-            return new WebSocketClosedError();
-        }
+            var bytes = new List<byte>();
 
-        var buffer = new byte[BufferSize];
-        WebSocketReceiveResult result;
-        try
-        {
-            result = await WebSocket.ReceiveAsync(buffer, cancellationToken);
-        }
-        catch (IOException ex)
-        {
-            // await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Close", cancellationToken);
-            Dispose();
-            return new WebSocketUnrecoverableError();
+            while (!result.EndOfMessage)
+            {
+                bytes.AddRange(buffer.Take(result.Count));
+                result = await WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+            }
+
+            bytes.AddRange(buffer.Take(result.Count));
+            var l2 = $"{_name} received {Encoding.UTF8.GetString(bytes.ToArray())}.";
+            Console.WriteLine(l);
+            if (_log != null)
+            {
+                _log(l2);
+            }
+
+            return bytes;
         }
 
-        if (result.CloseStatus != null)
+        public void Dispose()
         {
-            await WebSocket.CloseOutputAsync(result.CloseStatus.Value, "Close", cancellationToken);
-            Dispose();
-            return new WebSocketClosedError();
+            WebSocket.Dispose();
         }
-
-        var bytes = new List<byte>();
-
-        while (!result.EndOfMessage)
-        {
-            bytes.AddRange(buffer[..result.Count]);
-            result = await WebSocket.ReceiveAsync(buffer, cancellationToken);
-        }
-        bytes.AddRange(buffer[..result.Count]);
-        var l2 = $"{_name} received {Encoding.UTF8.GetString(bytes.ToArray())}.";
-        Console.WriteLine(l);
-        if (_log != null)
-        {
-            _log(l2);
-        }
-
-        return bytes;
-    }
-
-    public void Dispose()
-    {
-        WebSocket.Dispose();
     }
 }

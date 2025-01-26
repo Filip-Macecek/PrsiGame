@@ -1,5 +1,8 @@
 using FluentResults;
 
-namespace PrsiGame.WebSockets;
-
-public sealed class WebSocketUnrecoverableError : Error;
+namespace PrsiGame.WebSockets
+{
+    public sealed class WebSocketUnrecoverableError : Error
+    {
+    }
+}
