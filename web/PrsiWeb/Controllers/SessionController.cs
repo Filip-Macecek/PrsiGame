@@ -4,7 +4,7 @@ using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using PrsiGame.WebSockets;
 using PrsiWeb.Commands;
-using PrsiWeb.Models;
+using PrsiGame.WebSockets.Models;
 using PrsiWeb.Services;
 
 namespace PrsiWeb.Controllers;

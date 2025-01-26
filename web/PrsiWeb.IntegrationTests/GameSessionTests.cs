@@ -7,7 +7,7 @@ using FluentAssertions.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using PrsiGame.WebSockets;
 using PrsiWeb.Entities;
-using PrsiWeb.Models;
+using PrsiGame.WebSockets.Models;
 using PrsiWeb.Services;
 
 namespace PrsiWeb.IntegrationTests;
@@ -88,7 +88,7 @@ public class GameSessionTests : TestBase
         await socket.SendAsync(new CreateSessionCommandDto(player.ToDto()), default);
         var messageResult = await socket.ReceiveAsync<SessionDto>(default);
         messageResult.IsFailed.Should().BeFalse();
-        messageResult.Value!.State.Should().Be(SessionState.Lobby);
+        messageResult.Value!.State.Should().Be(SessionStateDto.Lobby);
         messageResult.Value.Players.Should().HaveCount(1);
     }
 
@@ -106,7 +106,7 @@ public class GameSessionTests : TestBase
         await socket.SendAsync(new JoinLobbyCommandDto(session.Id, newPlayer.ToDto()), default);
         var messageResult = await socket.ReceiveAsync<SessionDto>(default);
         messageResult.Value!.Should().NotBeNull();
-        messageResult.Value.State.Should().Be(SessionState.Lobby);
+        messageResult.Value.State.Should().Be(SessionStateDto.Lobby);
         messageResult.Value.Players.Should().HaveCount(2);
     }
 

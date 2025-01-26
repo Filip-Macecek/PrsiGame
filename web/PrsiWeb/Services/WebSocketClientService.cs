@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 using PrsiWeb.Entities;
-using PrsiWeb.Models;
+using PrsiGame.WebSockets.Models;
 
 namespace PrsiWeb.Services;
 

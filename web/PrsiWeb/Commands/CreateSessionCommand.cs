@@ -1,6 +1,6 @@
 using MediatR;
 using PrsiGame.WebSockets;
-using PrsiWeb.Models;
+using PrsiGame.WebSockets.Models;
 
 namespace PrsiWeb.Commands;
 
