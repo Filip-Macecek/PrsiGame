@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.Caching.Memory;
 using PrsiGame;
 using PrsiGame.Types;
@@ -78,7 +79,11 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
             var newSession = session with
             {
                 State = SessionState.InGame,
-                Game = game
+                Game = game,
+                Players = session.Players.Zip(game.Players).Select(players => players.First with
+                {
+                    PrsiPlayer = players.Second
+                }).ToList()
             };
             _cache.Set(session.Id, newSession);
             return newSession;

@@ -26,11 +26,11 @@ public class GameSessionTests : TestBase
     [Test]
     public async Task Connect_WhenNotWebSocket_Fails()
     {
-        var player = new Player(Guid.NewGuid(), "Filda");
+        var player = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
         var session = _gameSessionRepository.CreateNew(player);
         var sessionId = session.Id;
 
-        var newPlayer = new Player(Guid.NewGuid(), "Jana");
+        var newPlayer = new Player(Guid.NewGuid(), "Jana", PrsiPlayer: null);
         var dto = new ConnectToSessionDto(newPlayer.Id, sessionId);
 
         var client = WebApplicationFactory.CreateClient();
@@ -78,7 +78,7 @@ public class GameSessionTests : TestBase
     [Test]
     public async Task Connect_WhenCreateSessionCommandIsSent_NewSessionIsRetrieved()
     {
-        var player = new Player(Guid.NewGuid(), "Filda");
+        var player = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
@@ -95,14 +95,14 @@ public class GameSessionTests : TestBase
     [Test]
     public async Task Connect_WhenJoinLobby_StateIsSent()
     {
-        var session = _gameSessionRepository.CreateNew(new Player(Guid.NewGuid(), "Author"));
+        var session = _gameSessionRepository.CreateNew(new Player(Guid.NewGuid(), "Author", PrsiPlayer: null));
 
         var webSocket = WebApplicationFactory.Server.CreateWebSocketClient();
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect");
         using var socket = new JsonWebSocket("", await webSocket.ConnectAsync(uri, CancellationToken.None));
 
-        var newPlayer = new Player(Guid.NewGuid(), "Filda");
+        var newPlayer = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
         await socket.SendAsync(new JoinLobbyCommandDto(session.Id, newPlayer.ToDto()), default);
         var messageResult = await socket.ReceiveAsync<SessionDto>(default);
         messageResult.Value!.Should().NotBeNull();
@@ -117,7 +117,7 @@ public class GameSessionTests : TestBase
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
 
-        var author = new Player(Guid.NewGuid(), "Filda");
+        var author = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
         using var socket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
 
         await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
@@ -126,7 +126,7 @@ public class GameSessionTests : TestBase
         var joinLobbyTask = Task.Run(async () =>
         {
             using var newPlayerSocket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
-            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            var newPlayer = new Player(Guid.NewGuid(), "Janca", PrsiPlayer: null);
             await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
         });
 
@@ -151,7 +151,7 @@ public class GameSessionTests : TestBase
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
 
-        var author = new Player(Guid.NewGuid(), "Filda");
+        var author = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
         using var socket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
 
         await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
@@ -160,7 +160,7 @@ public class GameSessionTests : TestBase
         var joinLobbyAndDisconnectTask = Task.Run(async () =>
         {
             using var newPlayerSocket = new JsonWebSocket("Join lobby thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
-            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            var newPlayer = new Player(Guid.NewGuid(), "Janca", PrsiPlayer: null);
             await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
 
             await newPlayerSocket.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
@@ -193,7 +193,7 @@ public class GameSessionTests : TestBase
         var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
         var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
 
-        var author = new Player(Guid.NewGuid(), "Filda");
+        var author = new Player(Guid.NewGuid(), "Filda", PrsiPlayer: null);
         using var socket = new JsonWebSocket("Author thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
 
         await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
@@ -202,7 +202,7 @@ public class GameSessionTests : TestBase
         var otherClient = Task.Run(async () =>
         {
             using var newPlayerSocket = new JsonWebSocket("Second player thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
-            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            var newPlayer = new Player(Guid.NewGuid(), "Janca", PrsiPlayer: null);
             await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
             _ = await newPlayerSocket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds()); // discard first update
             await newPlayerSocket.SendAsync(new StartGameDto(), CancellationToken.None);
@@ -220,6 +220,11 @@ public class GameSessionTests : TestBase
         startedSession.IsSuccess.Should().BeTrue();
         startedSession.Value.Should().NotBeNull();
         startedSession.Value.Players.Count().Should().Be(2);
+        startedSession.Value.Players.Should().AllSatisfy(p => p.Cards.Should().NotBeNullOrEmpty());
         startedSession.Value.State.Should().Be(SessionStateDto.InGame);
+        startedSession.Value.Game.Should().NotBeNull();
+        startedSession.Value.Game.Turns.Should().BeEmpty();
+        startedSession.Value.Game.DiscardPile.Should().HaveCount(1, "First card should be discarded from lick pile in order for players to be able to turn.");
+        startedSession.Value.Game.LickPile.Should().NotBeEmpty();
     }
 }
