@@ -1,5 +1,8 @@
+using System;
+
 namespace PrsiGame.WebSockets.Models
 {
+    [Serializable]
     public abstract class PrsiCommandDto
     {
         protected PrsiCommandDto(PrsiCommandType prsiCommandType)

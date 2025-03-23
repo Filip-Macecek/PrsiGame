@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.AspNetCore.StaticFiles.Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
 using PrsiWeb.Services;
 
@@ -18,7 +19,6 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(Program).Assembly));
-        builder.Services.AddSingleton<IPersistenceService>(new PersistenceService());
         builder.Services.AddSingleton<IMemoryCache>(new MemoryCache(new MemoryCacheOptions()));
         builder.Services.AddSingleton<IGameSessionRepository, InMemoryGameSessionRepository>();
         builder.Services.AddSingleton<WebSocketClientService>();
@@ -40,7 +40,10 @@ public class Program
         app.MapControllers();
 
         app.UseDefaultFiles();
-        app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions()
+        {
+            ServeUnknownFileTypes = true
+        });
 
         app.Run();
     }

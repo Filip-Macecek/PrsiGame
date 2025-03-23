@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using PrsiGame.WebSockets;
 using PrsiWeb.Commands;
 using PrsiGame.WebSockets.Models;
-using PrsiWeb.Services;
 
 namespace PrsiWeb.Controllers;
 
@@ -14,16 +13,13 @@ namespace PrsiWeb.Controllers;
 public class SessionController : ControllerBase
 {
     private readonly ILogger<SessionController> _logger;
-    private readonly WebSocketClientService _clientService;
     private readonly IMediator _mediator;
 
     public SessionController(
         ILogger<SessionController> logger,
-        WebSocketClientService clientService,
         IMediator mediator)
     {
         _logger = logger;
-        _clientService = clientService;
         _mediator = mediator;
     }
 
@@ -43,11 +39,14 @@ public class SessionController : ControllerBase
             Result<IDictionary<string, object>> jsonResult;
             try
             {
-                var oneSecond = new TimeSpan(0, 0, 0, 1);
-                jsonResult = await socket.ReceiveJsonAsync(ct).WaitAsync(oneSecond, ct);
+                var timeout = new TimeSpan(0, 0, 0, seconds: 3);
+                jsonResult = await socket.ReceiveJsonAsync(ct).WaitAsync(timeout, ct);
             }
-            catch (TimeoutException)
+            catch (TimeoutException e)
             {
+                var disconnectCommand = new DisconnectCommand(socket);
+                await _mediator.Send(disconnectCommand, ct);
+                _logger.LogError(e, "Client has timed out.");
                 return;
             }
 
@@ -58,26 +57,26 @@ public class SessionController : ControllerBase
             try
             {
                 var command = GetCommand(jsonResult, socket);
-                await _mediator.Send(command!, ct);
+                if (command != null)
+                {
+                    await _mediator.Send(command, ct);
+                }
             }
             catch (Exception e)
             {
-                // TODO: Send error.
-                break;
+                _logger.LogError(e, "Error during processing a command. Disconnecting.");
+                var disconnectCommand = new DisconnectCommand(socket);
+                await _mediator.Send(disconnectCommand, ct);
+                return;
             }
         }
     }
 
-    private object? GetCommand(Result<IDictionary<string, object>> jsonResult, JsonWebSocket socket)
+    private IRequest? GetCommand(Result<IDictionary<string, object>> jsonResult, JsonWebSocket socket)
     {
         if (jsonResult.HasError(e => e is WebSocketClosedError))
         {
-            var client = _clientService.GetClient(socket.WebSocket);
-            if (client is null)
-            {
-                return null;
-            }
-            return new DisconnectCommand(socket, client.SessionId, client.PlayerId);
+            return new DisconnectCommand(socket);
         }
 
         var json = jsonResult.Value;
@@ -92,16 +91,15 @@ public class SessionController : ControllerBase
             throw new InvalidOperationException("Unknown command type.");
         }
 
-        object? command = prsiCommandType switch
+        return prsiCommandType switch
         {
             PrsiCommandType.CreateSession => socket.Convert<CreateSessionCommandDto>(json)!.ToCommand(socket),
             PrsiCommandType.JoinLobby => socket.Convert<JoinLobbyCommandDto>(json)!.ToCommand(socket),
-            PrsiCommandType.StartGame => throw new NotImplementedException(),
+            PrsiCommandType.StartGame => socket.Convert<StartGameDto>(json)!.ToCommand(socket),
             PrsiCommandType.AddTurn => throw new NotImplementedException(),
             PrsiCommandType.Disconnect => throw new NotImplementedException(),
             PrsiCommandType.Healthcheck => null, // We just make sure the timeout is not reached.
             _ => throw new ArgumentOutOfRangeException()
         };
-        return command;
     }
 }

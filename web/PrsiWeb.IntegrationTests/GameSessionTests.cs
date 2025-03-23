@@ -185,4 +185,41 @@ public class GameSessionTests : TestBase
         };
         await receiveUpdatedSessionWait.Should().NotThrowAsync<TimeoutException>();
     }
+
+    [Test]
+    public async Task Connect_WhenGameIsStarted_AllConnectedClientsAreUpdatedWithCorrectSessionStatus()
+    {
+        var clientWebSocket = WebApplicationFactory.Server.CreateWebSocketClient();
+        var serverBaseAddress = WebApplicationFactory.Server.BaseAddress;
+        var uri = new Uri($"ws://{serverBaseAddress.Host}/session/connect?id=join_lobby_thread");
+
+        var author = new Player(Guid.NewGuid(), "Filda");
+        using var socket = new JsonWebSocket("Author thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
+
+        await socket.SendAsync(new CreateSessionCommandDto(author.ToDto()), CancellationToken.None);
+        var newSession = (await socket.ReceiveAsync<SessionDto>(CancellationToken.None)).Value;
+
+        var otherClient = Task.Run(async () =>
+        {
+            using var newPlayerSocket = new JsonWebSocket("Second player thread", await clientWebSocket.ConnectAsync(uri, CancellationToken.None));
+            var newPlayer = new Player(Guid.NewGuid(), "Janca");
+            await newPlayerSocket.SendAsync(new JoinLobbyCommandDto(newSession!.Id, newPlayer.ToDto()), CancellationToken.None);
+            _ = await newPlayerSocket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds()); // discard first update
+            await newPlayerSocket.SendAsync(new StartGameDto(), CancellationToken.None);
+            var startedSession = await newPlayerSocket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds());
+            startedSession.IsSuccess.Should().BeTrue();
+            startedSession.Value.Should().NotBeNull();
+            startedSession.Value.Players.Count().Should().Be(2);
+            startedSession.Value.State.Should().Be(SessionStateDto.InGame);
+        });
+
+        await otherClient.WaitAsync(3.Seconds());
+
+        _ = await socket.ReceiveAsync<SessionDto>(CancellationToken.None).WaitAsync(3.Seconds()); // discard first update
+        var startedSession = await socket.ReceiveAsync<SessionDto>(CancellationToken.None);
+        startedSession.IsSuccess.Should().BeTrue();
+        startedSession.Value.Should().NotBeNull();
+        startedSession.Value.Players.Count().Should().Be(2);
+        startedSession.Value.State.Should().Be(SessionStateDto.InGame);
+    }
 }

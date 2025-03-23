@@ -18,7 +18,7 @@ public sealed class CreateSessionCommandHandler : IRequestHandler<CreateSessionC
     public Task Handle(CreateSessionCommand request, CancellationToken cancellationToken)
     {
         var session = _gameSessionRepository.CreateNew(new Player(request.PlayerDto.Id, request.PlayerDto.Name));
-        _webSocketClientService.Add(session, new WebSocketClient(Guid.NewGuid(), request.WebSocket, request.PlayerDto.Id, session.Id));
+        _webSocketClientService.Add(session, new ClientDetails(Guid.NewGuid(), request.WebSocket, request.PlayerDto.Id, session.Id));
         _webSocketClientService.UpdateAll(session.ToDto());
         return Task.CompletedTask;
     }

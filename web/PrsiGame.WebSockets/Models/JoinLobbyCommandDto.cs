@@ -2,6 +2,7 @@ using System;
 
 namespace PrsiGame.WebSockets.Models
 {
+    [Serializable]
     public class JoinLobbyCommandDto : PrsiCommandDto
     {
         public JoinLobbyCommandDto(Guid sessionId, PlayerDto player) : base(PrsiCommandType.JoinLobby)

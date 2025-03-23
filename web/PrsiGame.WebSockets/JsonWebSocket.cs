@@ -162,6 +162,7 @@ namespace PrsiGame.WebSockets
 
         public void Dispose()
         {
+            Console.WriteLine($"{_name} Disposed.");
             WebSocket.Dispose();
         }
     }

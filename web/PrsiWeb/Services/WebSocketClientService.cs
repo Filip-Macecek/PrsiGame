@@ -7,15 +7,15 @@ namespace PrsiWeb.Services;
 public sealed class WebSocketClientService
 {
     private readonly ILogger _logger;
-    private readonly IDictionary<Guid, List<WebSocketClient>> _clients;
+    private readonly IDictionary<Guid, List<ClientDetails>> _clients;
 
     public WebSocketClientService(ILogger<WebSocketClientService> logger)
     {
         _logger = logger;
-        _clients = new Dictionary<Guid, List<WebSocketClient>>();
+        _clients = new Dictionary<Guid, List<ClientDetails>>();
     }
 
-    public WebSocketClient? GetClient(WebSocket webSocket)
+    public ClientDetails? GetClientDetails(WebSocket webSocket)
     {
         lock (_clients)
         {
@@ -63,7 +63,7 @@ public sealed class WebSocketClientService
         }
     }
 
-    public void Add(GameSession gameSession, WebSocketClient client)
+    public void Add(GameSession gameSession, ClientDetails clientDetails)
     {
         lock (_clients)
         {
@@ -71,7 +71,7 @@ public sealed class WebSocketClientService
             {
                 _clients.Add(gameSession.Id, []);
             }
-            _clients[gameSession.Id].Add(client);
+            _clients[gameSession.Id].Add(clientDetails);
         }
     }
 

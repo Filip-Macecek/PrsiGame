@@ -1,7 +1,9 @@
+using PrsiGame.Types;
 using PrsiGame.WebSockets;
 using PrsiWeb.Commands;
 using PrsiWeb.Entities;
 using PrsiGame.WebSockets.Models;
+using Player = PrsiWeb.Entities.Player;
 
 namespace PrsiWeb;
 
@@ -25,5 +27,10 @@ public static class ConversionExtensions
     public static JoinLobbyCommand ToCommand(this JoinLobbyCommandDto commandDto, JsonWebSocket socket)
     {
         return new JoinLobbyCommand(socket, commandDto.SessionId, new Player(commandDto.Player.Id, commandDto.Player.Name));
+    }
+
+    public static StartGameCommand ToCommand(this StartGameDto commandDto, JsonWebSocket socket)
+    {
+        return new StartGameCommand(socket);
     }
 }

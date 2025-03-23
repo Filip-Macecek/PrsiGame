@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\lib\PrsiGame\PrsiGame.csproj" />
       <ProjectReference Include="..\PrsiGame.WebSockets\PrsiGame.WebSockets.csproj" />
     </ItemGroup>
 

@@ -20,7 +20,7 @@ public sealed class JoinLobbyCommandHandler : IRequestHandler<JoinLobbyCommand>
         var updatedSession = _gameSessionRepository.AddPlayer(request.SessionId, request.Player);
         if (updatedSession is not null)
         {
-            _webSocketClientService.Add(updatedSession, new WebSocketClient(Guid.NewGuid(), request.WebSocket, request.Player.Id, request.SessionId));
+            _webSocketClientService.Add(updatedSession, new ClientDetails(Guid.NewGuid(), request.WebSocket, request.Player.Id, request.SessionId));
             _webSocketClientService.UpdateAll(updatedSession.ToDto());
         }
 

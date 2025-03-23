@@ -2,6 +2,7 @@ using System;
 
 namespace PrsiGame.WebSockets.Models
 {
+    [Serializable]
     public class PlayerDto
     {
         public PlayerDto(Guid id, string name)

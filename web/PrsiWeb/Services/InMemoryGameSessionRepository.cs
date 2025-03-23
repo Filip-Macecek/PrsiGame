@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Caching.Memory;
+using PrsiGame;
+using PrsiGame.Types;
 using PrsiWeb.Entities;
+using Player = PrsiWeb.Entities.Player;
 
 namespace PrsiWeb.Services;
 
@@ -19,7 +22,7 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
 
     public GameSession CreateNew(Player author)
     {
-        var session = new GameSession(Guid.NewGuid(), [author], SessionState.Lobby, author);
+        var session = new GameSession(Guid.NewGuid(), [author], SessionState.Lobby, author, Game: null);
         return _cache.Set(session.Id, session);
     }
 
@@ -54,7 +57,6 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
 
             var newSession = session with
             {
-                // TODO: Will the except work?
                 Players = [..session.Players.Where(p => p.Id != playerId).ToList()]
             };
             _cache.Set(session.Id, newSession);
@@ -72,9 +74,11 @@ public class InMemoryGameSessionRepository : IGameSessionRepository
                 throw new InvalidOperationException($"Session with ID {sessionId} not found.");
             }
 
+            var game = GameFactory.NewGame(GameFactory.ShuffleCards(), new GameSetup((ushort)session.Players.Count, PlayerCardCount: 4));
             var newSession = session with
             {
-                State = SessionState.InGame
+                State = SessionState.InGame,
+                Game = game
             };
             _cache.Set(session.Id, newSession);
             return newSession;
